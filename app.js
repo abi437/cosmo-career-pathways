@@ -1,4 +1,7 @@
 import { buildRoadmap } from './career-model.js';
+import { initializeMotion } from './motion.js';
+
+const motion = initializeMotion();
 
 const icons = {
   compass: '<circle cx="12" cy="12" r="9"/><path d="m16 8-2.5 5.5L8 16l2.5-5.5L16 8Z"/>',
@@ -48,7 +51,7 @@ const dialog = document.getElementById('detail-dialog');
 function fillIcons(root = document) { root.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); }); }
 function sectorById(id) { return sectors.find(sector => sector.id === id) || { id, short: 'ICT', name: 'ICT' }; }
 function sectorStyle(id) { const [color, bg] = sectorColors[id] || ['#427c65', '#eaf4ed']; return `--sector-color:${color};--sector-bg:${bg}`; }
-function notify(message) { const toast = document.getElementById('toast'); toast.textContent = message; toast.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { toast.hidden = true; }, 3500); }
+function notify(message) { const toast = document.getElementById('toast'); toast.textContent = message; toast.hidden = false; motion.toast(toast); clearTimeout(toastTimer); toastTimer = setTimeout(() => { toast.hidden = true; }, 3500); }
 function persist(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; } }
 function saveProfile() { persist('pathfinder-profile', { from: state.from, years: state.years, goal: state.goal }); }
 function readLocation() {
@@ -83,6 +86,7 @@ function render() {
   if (state.view === 'roadmap') renderRoadmap();
   else if (state.view === 'courses') renderCourses();
   else renderExplorer();
+  motion.refresh(content);
 }
 function renderExplorer() {
   const saved = state.view === 'saved';
@@ -107,6 +111,7 @@ function updateCareerResults() {
   document.getElementById('result-summary').innerHTML = `<span>Showing <strong>${Math.min(matches.length, state.limit)}</strong> of <strong>${matches.length}</strong> ${state.view === 'saved' ? 'saved ' : ''}career roles${state.sector !== 'all' ? ` in ${esc(sectorById(state.sector).short)}` : ''}</span><span>One of these could be your next chapter ${icon('sparkles')}</span>`;
   document.getElementById('career-grid').innerHTML = matches.length ? matches.slice(0, state.limit).map(careerCard).join('') : emptyState(state.view === 'saved' ? 'Your next chapter is still unwritten.' : 'A different direction, perhaps?', state.view === 'saved' ? 'Tap the bookmark on any career to keep it here.' : state.sector !== 'all' && !roles.some(r => r.sector === state.sector) ? 'This sector has no role examples in the supplied specification. Explore another sector while the full data is unavailable.' : 'Try another search, or clear your filters to explore more possibilities.', '<button class="button button-secondary" data-reset-filters>Explore all careers '+icon('arrow-right')+'</button>');
   document.getElementById('load-more-row').innerHTML = matches.length > state.limit ? `<button class="button button-secondary" data-load-more>Discover more careers ${icon('arrow-right')}</button>` : '';
+  motion.refresh(document.getElementById('career-grid'));
 }
 function courseCard(course) {
   const links = (course.careerLinks || []).filter(l => roles.some(r => r.id === l.role));
@@ -121,6 +126,7 @@ function updateCourseResults() {
   const matches = courses.filter(c => (state.courseType === 'all' || c.type === state.courseType) && `${c.title} ${c.area} ${c.awardingBody}`.toLocaleLowerCase().includes(state.courseQuery.toLocaleLowerCase().trim()));
   document.getElementById('course-summary').textContent = `${matches.length} ${matches.length === 1 ? 'course' : 'courses'} to explore`;
   document.getElementById('course-grid').innerHTML = matches.length ? matches.map(courseCard).join('') : emptyState('No courses found.', 'Try a broader search or choose a different course type.');
+  motion.refresh(document.getElementById('course-grid'));
 }
 function statusLabel(status) {
   if (status.type === 'ok') return status.soft ? 'Check experience / portfolio' : 'Qualification & years met';
@@ -149,20 +155,23 @@ function updateRoadmap() {
   const goal = roles.find(r => r.id === state.goal);
   const roadmap = buildRoadmap(roles, state.goal, qualifications[state.from].bdqf, state.years, state.route);
   const body = document.getElementById('roadmap-body');
-  if (!roadmap) { body.innerHTML = emptyState('No pathway available yet.', 'Choose another goal to see a documented progression route.'); return; }
-  if (goal.unavailable) { body.innerHTML = emptyState('This career is still taking shape.', 'The source lists this role, but has not published its entry requirements or skills. Explore the official profile for updates.', external(goal.url, 'View official role', 'button button-primary')); return; }
+  if (!roadmap) { body.innerHTML = emptyState('No pathway available yet.', 'Choose another goal to see a documented progression route.'); motion.refresh(body); return; }
+  if (goal.unavailable) { body.innerHTML = emptyState('This career is still taking shape.', 'The source lists this role, but has not published its entry requirements or skills. Explore the official profile for updates.', external(goal.url, 'View official role', 'button button-primary')); motion.refresh(body); return; }
   const links = linkedCourses(roadmap.ids[0]);
   body.innerHTML = `<div class="roadmap-summary"><div><span>YOUR GOAL</span><strong>${esc(goal.title)}</strong></div><div><span>CAREER STEPS</span><strong>${roadmap.header.steps} <small>roles on this route</small></strong></div><div><span>GOAL EXPERIENCE REQUIREMENT</span><strong>${roadmap.header.years === null ? 'Not specified' : `${roadmap.header.years} years`} <small>cumulative, not per step</small></strong></div></div><div class="roadmap-layout"><div><div class="roadmap-heading"><h3>Your possible pathway</h3>${roadmap.hasAlt ? `<div class="route-options"><button class="button ${!state.route ? 'button-primary' : 'button-secondary'}" data-route="0" aria-pressed="${!state.route}">Route A</button><button class="button ${state.route ? 'button-primary' : 'button-secondary'}" data-route="1" aria-pressed="${!!state.route}">Route B</button></div>` : '<span>One step at a time</span>'}</div><div class="roadmap-steps">${roadmap.study ? `<article class="roadmap-step"><div class="step-number">${icon('graduation')}</div><div class="step-content"><span class="status-badge status-study">Your learning step</span><h3>Build your qualification to BDQF ${roadmap.study.needBdqf}</h3><p>The first role's lowest published entry route starts at this level. Check subject, certification and experience requirements too.</p><button class="text-button" data-navigate="courses">Explore courses ${icon('arrow-right')}</button></div></article>` : ''}${roadmap.steps.map(({ role, status }, index) => `<article class="roadmap-step"><div class="step-number ${status.type === 'ok' ? 'step-complete' : ''}">${status.type === 'ok' ? icon('check') : String(index + 1).padStart(2, '0')}</div><div class="step-content"><div class="step-top"><span class="sector-name">${esc(stageNames[role.stage])}${index === roadmap.steps.length - 1 ? ' · YOUR GOAL' : ''}</span><span class="status-badge status-${status.type}">${esc(statusLabel(status))}</span></div><h3><button class="card-title-button" data-detail="${esc(role.id)}">${esc(role.title)} ${icon('arrow-up-right')}</button></h3><p>${esc(role.summary)}</p>${status.route ? `<p class="route-note">${esc(status.route.note)}</p>` : ''}<div class="step-skills">${role.skills.slice(0, 3).map(([skill]) => `<span class="tag">${esc(skill)}</span>`).join('')}</div></div></article>`).join('')}</div></div><aside class="roadmap-aside"><span class="sector-icon">${icon('graduation')}</span><h3>Learning that moves you forward.</h3><p>Courses linked to ${esc(roles.find(r => r.id === roadmap.ids[0])?.title)}.</p>${links.length ? links.map(courseLink).join('') : '<p>No course links have been published for this role.</p>'}<p class="source-note">Qualification and experience indicators are a guide. Relevant subjects, certifications, portfolios and all conditions in the official entry route still apply. Experience is cumulative across your career.</p></aside></div>`;
+  motion.refresh(body);
 }
 function openRole(id) {
   const role = roles.find(r => r.id === id); if (!role) return;
   const sector = sectorById(role.sector), links = linkedCourses(role.id);
   document.getElementById('detail-content').innerHTML = `<div class="detail-header" style="${sectorStyle(role.sector)}"><span class="sector-icon">${icon(sectorIcons[role.sector])}</span><div class="detail-kicker">${esc(sector.name)} <span> / </span> ${esc(stageNames[role.stage])}</div><h2 id="detail-title">${esc(role.title)}</h2><p>${esc(role.summary)}</p>${role.aka?.length ? `<p class="also-known">Also known as ${esc(role.aka.join(', '))}</p>` : ''}</div><div class="dialog-actions"><button class="button button-primary" data-map="${esc(role.id)}">Map this career ${icon('route')}</button><button class="button button-secondary" data-save="${esc(role.id)}">${icon('bookmark')}${state.saved.has(role.id) ? 'Saved to your careers' : 'Save career'}</button></div>${role.unavailable ? '<section class="detail-section"><h3>Details coming soon</h3><p>The official source has not published requirements, skills or certifications for this role yet.</p></section>' : `<section class="detail-section"><h3>Ways into this role</h3><p class="route-note">Alternative entry routes — check every condition in the route that applies to you.</p>${role.routes.map(route => `<div class="entry-route"><div><span class="tag">BDQF ${route.bdqf}</span><span>${route.years === null ? 'Experience / portfolio required' : route.years === 0 ? 'No minimum years stated' : `${route.years} years' experience`}</span></div><p>${esc(route.note)}</p></div>`).join('')}</section><section class="detail-section"><h3>Skills to build</h3><div class="skill-list">${role.skills.map(([skill, level]) => `<div><span>${esc(skill)}</span><span class="tag">Level ${esc(level)}</span></div>`).join('')}</div>${role.soft ? `<p class="route-note">Soft skills: ${esc(role.soft)}</p>` : ''}</section><section class="detail-section"><h3>Relevant certifications</h3><div class="cert-list">${role.certs.map(cert => `<span class="tag">${esc(cert)}</span>`).join('') || '<p>None published in the source.</p>'}</div></section>`}<section class="detail-section"><h3>Learning connected to this career</h3>${links.length ? links.map(courseLink).join('') : '<p>No linked courses are included for this role in the available data.</p>'}</section><div class="detail-section source-note">${external(role.url, 'View full BIICF role requirements', 'text-button')}<p>This unofficial student guide is based on the supplied BIICF-derived data. Confirm current requirements with the official framework.</p></div>`;
   dialog.showModal();
+  motion.refresh(dialog);
 }
 function openAbout() {
   document.getElementById('detail-content').innerHTML = `<div class="about-content"><span class="sector-icon">${icon('compass')}</span><div class="detail-kicker">A LITTLE CONTEXT</div><h2 id="detail-title">A clearer starting point.</h2><p>PathFinder helps you explore Brunei's ICT careers and connect your current qualification and experience to a possible pathway.</p><section class="detail-section"><h3>Where the information comes from</h3><p>Career and course information comes from the ${external('https://ccctmacademy.edu.bn/showcase_2026/openapi.json', 'supplied PathFinder OpenAPI specification', 'inline-link')}, which cites the Brunei ICT Industry Competency Framework and COSMO course information.</p><p>${metadata.mode === 'spec-examples' ? `The full dataset endpoints returned 404 errors when this page was built. This version shows ${roles.length} documented role examples and ${courses.length} full course examples extracted from the specification. Sectors without role examples remain visible so you can see the framework's scope.` : 'This page uses a locally bundled snapshot of the public datasets.'}</p></section><section class="detail-section"><h3>Use it as a guide</h3><p>Roadmaps follow the source's progression links. Experience is cumulative, and meeting the level and years shown does not automatically meet subject, certification or portfolio requirements. Short courses build skills and do not replace entry qualifications. Estimated BDQF levels must be confirmed with COSMO.</p><p>This is an unofficial student guide and is not affiliated with AITI, MISC or BIICF. Check official sources for the latest requirements, fees and intakes.</p></section><section class="detail-section"><h3>Your shortlist stays with you</h3><p>Saved careers and your qualification choices are stored in this browser only. No account is needed.</p></section><div class="dialog-actions">${external('https://www.biicf.bn', 'Official BIICF framework', 'button button-primary')}${external('https://cosmo.edu.bn', 'COSMO courses', 'button button-secondary')}</div></div>`;
   dialog.showModal();
+  motion.refresh(dialog);
 }
 const mobileLayout = matchMedia('(max-width: 760px)');
 function syncMenuAccessibility() { document.getElementById('sidebar').inert = mobileLayout.matches && !document.body.classList.contains('menu-open'); }
@@ -179,6 +188,7 @@ document.addEventListener('click', async event => {
     document.getElementById('saved-count').textContent = state.saved.size;
     if (['explore', 'saved'].includes(state.view)) updateCareerResults();
     if (dialog.open) { save.innerHTML = `${icon('bookmark')}${state.saved.has(id) ? 'Saved to your careers' : 'Save career'}`; }
+    motion.saved(id);
     notify(`${removing ? 'Career removed from your shortlist.' : 'Career saved to your shortlist.'}${stored ? '' : ' Browser storage is unavailable; kept for this visit.'}`); return;
   }
   const sector = event.target.closest('[data-sector]'); if (sector) { state.sector = sector.dataset.sector; state.limit = 9; document.querySelectorAll('[data-sector]').forEach(el => { const active = el.dataset.sector === state.sector; el.classList.toggle('active', active); el.setAttribute('aria-pressed', active); }); updateLocation(); updateCareerResults(); return; }
@@ -206,7 +216,11 @@ document.addEventListener('change', event => {
   }
 });
 document.getElementById('hero-button').addEventListener('click', () => navigate('roadmap'));
-document.getElementById('direction-button').addEventListener('click', () => { navigate('explore'); document.querySelector('.sector-tabs')?.scrollIntoView({ behavior: 'smooth', block: 'center' }); });
+document.getElementById('direction-button').addEventListener('click', () => { navigate('explore'); document.querySelector('.sector-tabs')?.scrollIntoView({ behavior: motion.enabled ? 'smooth' : 'instant', block: 'center' }); });
+document.querySelectorAll('[data-journey]').forEach(button => button.addEventListener('click', () => {
+  if (button.dataset.journey === 'roles') { navigate('explore'); document.querySelector('.sector-tabs')?.scrollIntoView({ behavior: motion.enabled ? 'smooth' : 'instant', block: 'center' }); }
+  else navigate('roadmap', button.dataset.journey === 'goal' ? 'ciso' : undefined);
+}));
 document.getElementById('close-detail').addEventListener('click', () => dialog.close());
 dialog.addEventListener('click', event => { if (event.target === dialog) { const r = dialog.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) dialog.close(); } });
 document.getElementById('about-link').addEventListener('click', event => { event.preventDefault(); openAbout(); });

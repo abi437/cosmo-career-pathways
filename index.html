@@ -8,6 +8,7 @@
   <title>PathFinder — Your ICT career, mapped.</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="motion.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
@@ -25,9 +26,31 @@
     <div class="sidebar-bottom"><a href="https://www.biicf.bn" target="_blank" rel="noopener noreferrer"><span data-icon="book-open"></span><span>Explore the official<br><strong>BIICF framework</strong></span><span data-icon="arrow-up-right"></span></a><div class="location"><span class="location-dot"></span>Made for your future in Brunei</div></div>
   </aside>
   <div class="page-shell">
-    <header class="topbar"><div class="topbar-left"><button class="icon-button mobile-menu" id="mobile-menu" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><span data-icon="menu"></span></button><span class="breadcrumb">Discover <span>/</span> <strong id="breadcrumb-title">Explore careers</strong></span></div><div class="topbar-right"><span class="brunei-label"><span class="small-dot"></span>BRUNEI ICT CAREER EXPLORER</span><a class="help-link" href="#about" id="about-link" aria-label="About this guide"><span data-icon="circle-help"></span></a></div></header>
+    <header class="topbar"><div class="topbar-left"><button class="icon-button mobile-menu" id="mobile-menu" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><span data-icon="menu"></span></button><span class="breadcrumb">Discover <span>/</span> <strong id="breadcrumb-title">Explore careers</strong></span></div><div class="topbar-right"><span class="brunei-label"><span class="small-dot"></span>BRUNEI ICT CAREER EXPLORER</span><button class="motion-control" id="motion-toggle" aria-label="Pause animations" aria-pressed="false"><span class="motion-control-label">Motion on</span></button><a class="help-link" href="#about" id="about-link" aria-label="About this guide"><span data-icon="circle-help"></span></a></div></header>
     <main id="main-content" tabindex="-1">
-      <section class="hero" id="hero"><div class="hero-copy"><div class="eyebrow"><span></span>BIG POSSIBILITIES. YOUR NEXT STEP.</div><h1>Your future.<br>A <em>clearer path.</em></h1><p>Turn your interests into a direction. Discover ICT careers,<br class="desktop-break"> the skills you'll need, and how to get there.</p><button class="button button-lime" id="hero-button">Build my roadmap <span data-icon="arrow-up-right"></span></button><div class="hero-proof"><span data-icon="badge-check"></span>Grounded in Brunei's ICT competency framework</div></div><div class="hero-art" aria-hidden="true"><div class="art-grid"></div><svg class="path-drawing" viewBox="0 0 480 330" fill="none"><path d="M25 290H106Q129 290 129 266V223Q129 202 151 202H262Q285 202 285 178V129Q285 106 310 106H371Q395 106 395 82V22" stroke="#a5c591" stroke-opacity=".55" stroke-width="2" stroke-dasharray="5 6"/><circle cx="25" cy="290" r="5" fill="#cce79e"/><circle cx="395" cy="22" r="5" fill="#cce79e"/></svg><div class="art-caption">A SMALL STEP. A BIGGER FUTURE.</div><div class="journey-card journey-start"><span class="journey-icon" data-icon="graduation"></span><div><span>START WITH YOU</span><strong>Your skills & interests</strong></div><span class="art-check" data-icon="check"></span></div><div class="journey-card journey-middle"><span class="journey-icon" data-icon="code"></span><div><span>BUILD YOUR EXPERIENCE</span><strong>Find your next role</strong></div><span data-icon="arrow-up-right"></span></div><div class="journey-card journey-end"><span class="journey-icon" data-icon="flag"></span><div><span>GO FURTHER</span><strong>A career you'll love</strong></div><span class="art-star" data-icon="sparkles"></span></div><div class="art-note"><span data-icon="sparkles"></span>There's more than one way to get there.</div></div></section>
+      <section class="hero" id="hero">
+        <div class="hero-copy">
+          <div class="eyebrow"><span></span>BIG POSSIBILITIES. YOUR NEXT STEP.</div>
+          <h1><span class="hero-line"><span>Your future.</span></span><span class="hero-line"><span>A <em>clearer path.</em></span></span></h1>
+          <p>Turn your interests into a direction. Discover ICT careers,<br class="desktop-break"> the skills you'll need, and how to get there.</p>
+          <button class="button button-lime" id="hero-button">Build my roadmap <span data-icon="arrow-up-right"></span></button>
+          <div class="hero-proof"><span data-icon="badge-check"></span>Grounded in Brunei's ICT competency framework</div>
+        </div>
+        <div class="hero-art">
+          <div class="art-grid" aria-hidden="true"></div>
+          <svg class="path-drawing" viewBox="0 0 480 330" fill="none" aria-hidden="true">
+            <path d="M25 290H106Q129 290 129 266V223Q129 202 151 202H262Q285 202 285 178V129Q285 106 310 106H371Q395 106 395 82V22" stroke="#a5c591" stroke-opacity=".3" stroke-width="1.5" stroke-dasharray="5 6"/>
+            <path class="route-trace" d="M25 290C104 306 107 169 184 201S305 173 287 126S359 141 395 22" stroke="#df4d91" stroke-opacity=".7" stroke-width="2" stroke-linecap="round"/>
+            <circle class="route-traveller" cx="25" cy="290" r="4.5" fill="#f4d64d"/>
+            <circle cx="395" cy="22" r="3" fill="#cce79e"/>
+          </svg>
+          <div class="art-caption" aria-hidden="true">A SMALL STEP. A BIGGER FUTURE.</div>
+          <button class="journey-card journey-start" data-journey="profile" aria-label="Build a roadmap from your qualification and experience"><span class="journey-icon" data-icon="graduation"></span><div><span>START WITH YOU</span><strong>Your skills & interests</strong></div><span class="art-check" data-icon="check"></span></button>
+          <button class="journey-card journey-middle" data-journey="roles" aria-label="Explore career roles"><span class="journey-icon" data-icon="code"></span><div><span>BUILD YOUR EXPERIENCE</span><strong>Find your next role</strong></div><span data-icon="arrow-up-right"></span></button>
+          <button class="journey-card journey-end" data-journey="goal" aria-label="Explore the pathway to Chief Information Security Officer"><span class="journey-icon" data-icon="flag"></span><div><span>GO FURTHER</span><strong>A career you'll love</strong></div><span class="art-star" data-icon="sparkles"></span></button>
+          <div class="art-note" aria-hidden="true"><span data-icon="sparkles"></span>There's more than one way to get there.</div>
+        </div>
+      </section>
       <div class="data-status" id="data-status" role="status"><span class="loading-dot"></span>Loading your possibilities…</div>
       <div id="view-content"></div>
       <footer class="page-footer"><span>Every great career starts with a little curiosity.</span><span>Data: <a href="https://www.biicf.bn" target="_blank" rel="noopener noreferrer">BIICF</a> & <a href="https://cosmo.edu.bn" target="_blank" rel="noopener noreferrer">COSMO</a><span class="footer-dot">·</span><button class="text-button" id="footer-about">About this guide <span data-icon="arrow-up-right"></span></button></span></footer>

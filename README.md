@@ -40,3 +40,11 @@ npm run build
 `dist/` contains the complete static website. Local browser checks can be run with the dev server active using `node scripts/browser-check.mjs` on Windows with Chrome installed at its standard location. This checks actual page interactions and saves desktop/mobile screenshots under `artifacts/`.
 
 Roadmap links use `?goal=ciso&from=hnd&exp=4`. Qualification choices and bookmarks stay in the visitor's browser. Sites deployment identity and static output are configured in `.openai/hosting.json`.
+
+## Motion and interactions
+
+Motion takes inspiration from the supplied COSMO TikTok reference: horizontal headline entrances, diagonal accents, and a curved magenta pathway led by a yellow dot. The dashboard adapts this into scroll reveals, card tilt and spotlights, interactive hero steps, sliding details, bookmark feedback, and a scroll-driven roadmap connector.
+
+The top-bar motion control pauses animations and pointer effects and remembers the choice locally. System reduced-motion settings take precedence. Content stays visible and usable without motion. The moving pathway stops when the hero is offscreen or the browser tab is hidden; touch screens do not receive mouse tilt.
+
+With the local server running, use `node scripts/motion-check.mjs` to check normal motion, pausing, reduced motion, pointer effects, input focus, dialogs, and mobile layout in Chrome.
