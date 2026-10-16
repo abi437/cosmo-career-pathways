@@ -41,6 +41,12 @@ npm run build
 
 Roadmap links use `?goal=ciso&from=hnd&exp=4`. Qualification choices and bookmarks stay in the visitor's browser. Sites deployment identity and static output are configured in `.openai/hosting.json`.
 
+## GitHub Pages
+
+In the GitHub repository, open **Settings → Pages** and select **GitHub Actions** as the build and deployment source. The included `.github/workflows/pages.yml` builds `dist/` and publishes it whenever changes are pushed to `main`. You can also run it manually from the **Actions** tab. No dependency installation is needed.
+
+After the first successful deployment, find the live website link in **Settings → Pages** or the workflow's **github-pages** deployment. All website assets and data use relative paths so the site also works under a repository subpath.
+
 ## Motion and interactions
 
 The main palette uses blue `#1E2859` and yellow `#FCD00F`, with navy text on yellow controls and light blue surfaces. The screenshot layout uses finite horizontal card entrances, subtle hover feedback, sliding detail panels and bookmark feedback. Slider updates remain immediate and retain keyboard focus.
