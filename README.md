@@ -1,6 +1,6 @@
-# PathFinder career pathway
+# COSMO Career Pathways
 
-A responsive static website for exploring Brunei ICT careers, saving a shortlist, mapping progression from qualification and experience, and finding linked COSMO courses. Built with plain HTML, CSS and JavaScript; no runtime dependencies or account required.
+A responsive static career pathway page matching the supplied screenshot: a compact blue header, qualification pills, an experience slider, sector tabs and horizontally scrollable career steps. Open a step for its complete requirements, skills, certifications and connected COSMO courses. Bookmarks, a course catalogue and shareable goals are included. Built with plain HTML, CSS and JavaScript; no runtime dependencies or account required.
 
 ## Run
 
@@ -43,8 +43,8 @@ Roadmap links use `?goal=ciso&from=hnd&exp=4`. Qualification choices and bookmar
 
 ## Motion and interactions
 
-The main palette uses blue `#1E2859` and yellow `#FCD00F`, with navy text on yellow controls and light blue surfaces. Motion takes inspiration from the supplied COSMO TikTok reference: horizontal headline entrances, diagonal accents, and a curved pathway led by a moving dot. The dashboard adapts this into scroll reveals, card tilt and spotlights, interactive hero steps, sliding details, bookmark feedback, and a scroll-driven roadmap connector.
+The main palette uses blue `#1E2859` and yellow `#FCD00F`, with navy text on yellow controls and light blue surfaces. The screenshot layout uses finite horizontal card entrances, subtle hover feedback, sliding detail panels and bookmark feedback. Slider updates remain immediate and retain keyboard focus.
 
-The top-bar motion control pauses animations and pointer effects and remembers the choice locally. System reduced-motion settings take precedence. Content stays visible and usable without motion. The moving pathway stops when the hero is offscreen or the browser tab is hidden; touch screens do not receive mouse tilt.
+The top-bar motion control pauses animations and remembers the choice locally. System reduced-motion settings take precedence. Content stays visible and usable without motion. Horizontal pathways support native scrollbars, trackpads and keyboard navigation.
 
-With the local server running, use `node scripts/motion-check.mjs` to check normal motion, pausing, reduced motion, pointer effects, input focus, dialogs, and mobile layout in Chrome.
+With the local server running, use `node scripts/motion-check.mjs` to check normal motion, pausing, reduced motion, input focus, dialogs and mobile layout in Chrome.
