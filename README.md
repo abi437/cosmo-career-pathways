@@ -43,7 +43,7 @@ Roadmap links use `?goal=ciso&from=hnd&exp=4`. Qualification choices and bookmar
 
 ## Motion and interactions
 
-Motion takes inspiration from the supplied COSMO TikTok reference: horizontal headline entrances, diagonal accents, and a curved magenta pathway led by a yellow dot. The dashboard adapts this into scroll reveals, card tilt and spotlights, interactive hero steps, sliding details, bookmark feedback, and a scroll-driven roadmap connector.
+The main palette uses blue `#1E2859` and yellow `#FCD00F`, with navy text on yellow controls and light blue surfaces. Motion takes inspiration from the supplied COSMO TikTok reference: horizontal headline entrances, diagonal accents, and a curved pathway led by a moving dot. The dashboard adapts this into scroll reveals, card tilt and spotlights, interactive hero steps, sliding details, bookmark feedback, and a scroll-driven roadmap connector.
 
 The top-bar motion control pauses animations and pointer effects and remembers the choice locally. System reduced-motion settings take precedence. Content stays visible and usable without motion. The moving pathway stops when the hero is offscreen or the browser tab is hidden; touch screens do not receive mouse tilt.
 

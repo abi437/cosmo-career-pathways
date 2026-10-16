@@ -21,8 +21,8 @@
   width: 96px;
   height: 8px;
   border-radius: 1px;
-  background: #f4d64d8c;
-  box-shadow: 0 15px 0 #f4d64d24, 0 30px 0 #f4d64d0f;
+  background: #FCD00F8C;
+  box-shadow: 0 15px 0 #FCD00F24, 0 30px 0 #FCD00F0F;
   transform: rotate(-35deg);
   pointer-events: none;
   content: "";
@@ -33,7 +33,7 @@
   height: 4px;
   flex-shrink: 0;
   margin-left: 3px;
-  background: #d5eca78c;
+  background: #FCD00F8C;
   transform: skewX(-32deg);
   content: "";
 }
@@ -48,18 +48,18 @@
 
 .hero-art [data-journey]:hover,
 .hero-art [data-journey]:focus-visible {
-  border-color: #d5eca7;
-  box-shadow: 0 12px 28px #08251e52, 0 0 0 3px #d5eca721;
+  border-color: var(--brand-yellow);
+  box-shadow: 0 12px 28px #0F163C52, 0 0 0 3px #FCD00F21;
 }
 
 .hero-art [data-journey]:focus-visible {
-  outline: 2px solid #d5eca7;
+  outline: 2px solid var(--brand-yellow);
   outline-offset: 4px;
 }
 
 .path-drawing .route-trace {
   fill: none;
-  stroke: #df4d91;
+  stroke: var(--brand-yellow);
   stroke-width: 1.6;
   stroke-linecap: round;
   stroke-dasharray: 1000;
@@ -69,8 +69,10 @@
 }
 
 .path-drawing .route-traveller {
-  fill: #f4d64d;
-  filter: drop-shadow(0 0 4px #f4d64d55);
+  fill: var(--brand-yellow);
+  stroke: #fff;
+  stroke-width: 1;
+  filter: drop-shadow(0 0 4px #FCD00F55);
   pointer-events: none;
 }
 
@@ -84,7 +86,7 @@
   z-index: -1;
   inset: 0;
   border-radius: inherit;
-  background: radial-gradient(240px circle at var(--spot-x, 50%) var(--spot-y, 30%), #d5eca72b, transparent 75%);
+  background: radial-gradient(240px circle at var(--spot-x, 50%) var(--spot-y, 30%), #FCD00F24, transparent 75%);
   opacity: 0;
   pointer-events: none;
   content: "";
@@ -92,8 +94,8 @@
 
 .motion-interactive:hover,
 .motion-interactive:focus-within {
-  border-color: #a7be91;
-  box-shadow: 0 10px 28px #173d3110;
+  border-color: #8C98C8;
+  box-shadow: 0 10px 28px #1E285910;
 }
 
 .motion-interactive:hover::before,
@@ -108,7 +110,7 @@
   width: 2px;
   height: var(--path-length, calc(100% - 32px));
   border-radius: 2px;
-  background: linear-gradient(#a6c872, #6b9352);
+  background: linear-gradient(var(--brand-yellow), #D6A900);
   transform: scaleY(var(--path-progress, 0));
   transform-origin: top;
   pointer-events: none;
@@ -123,10 +125,10 @@
   min-width: 32px;
   min-height: 32px;
   padding: 7px 10px;
-  border: 1px solid #e1e7d9;
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: #fcfdf9;
-  color: #70815f;
+  background: #FAFBFF;
+  color: #627195;
   font-size: 10px;
   font-weight: 550;
   line-height: 1.5;
@@ -134,8 +136,8 @@
 }
 
 .motion-control svg { width: 13px; height: 13px; }
-.motion-control:hover { border-color: #bbcca6; background: #f0f5e9; color: #3c6031; }
-.motion-control[aria-pressed="true"] { border-color: #c2d2ae; background: #eff5e8; color: #55763e; }
+.motion-control:hover { border-color: #BCC5E3; background: var(--brand-blue-light); color: var(--brand-blue); }
+.motion-control[aria-pressed="true"] { border-color: #EDD991; background: var(--brand-yellow-light); color: var(--brand-blue); }
 
 @media (prefers-reduced-motion: no-preference) {
   html:not(.motion-paused) .hero-line > span {

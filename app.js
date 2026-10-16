@@ -38,7 +38,7 @@ const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;
 const safeUrl = value => { try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? esc(url.href) : '#'; } catch { return '#'; } };
 const external = (url, text, cls = '') => `<a class="${cls}" href="${safeUrl(url)}" target="_blank" rel="noopener noreferrer">${text}${icon('arrow-up-right')}</a>`;
 const sectorIcons = { 'it-services': 'monitor', 'telecom-network': 'network', 'apps-solutions': 'code', 'ict-security': 'shield', 'digital-media': 'palette', 'data-ai': 'database' };
-const sectorColors = { 'it-services': ['#4a6cba', '#edf2fc'], 'telecom-network': ['#267d79', '#e8f5f1'], 'apps-solutions': ['#8665b5', '#f1edf8'], 'ict-security': ['#a16b36', '#fbf0e4'], 'digital-media': ['#bb6c71', '#fbeff0'], 'data-ai': ['#427c65', '#eaf4ed'] };
+const sectorColors = { 'it-services': ['#1E2859', '#EEF0F8'], 'telecom-network': ['#43558F', '#EEF1FA'], 'apps-solutions': ['#5967A1', '#F1F2FA'], 'ict-security': ['#896700', '#FFF8D6'], 'digital-media': ['#9A7300', '#FFF4CC'], 'data-ai': ['#30437D', '#EAF0FA'] };
 const stageNames = { entry: 'Entry level', mid: 'Mid level', senior: 'Senior level', top: 'Leadership' };
 const qualifications = { olevel: { label: 'O Level / equivalent', bdqf: 3 }, alevel: { label: 'A Level / HNTec', bdqf: 4 }, hnd: { label: 'HND / Advanced Diploma', bdqf: 5 }, degree: { label: "Bachelor's degree or above", bdqf: 6 } };
 const labels = { explore: 'Explore careers', roadmap: 'My roadmap', courses: 'Explore courses', saved: 'Saved careers' };
@@ -50,7 +50,7 @@ const content = document.getElementById('view-content');
 const dialog = document.getElementById('detail-dialog');
 function fillIcons(root = document) { root.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); }); }
 function sectorById(id) { return sectors.find(sector => sector.id === id) || { id, short: 'ICT', name: 'ICT' }; }
-function sectorStyle(id) { const [color, bg] = sectorColors[id] || ['#427c65', '#eaf4ed']; return `--sector-color:${color};--sector-bg:${bg}`; }
+function sectorStyle(id) { const [color, bg] = sectorColors[id] || ['#1E2859', '#EEF0F8']; return `--sector-color:${color};--sector-bg:${bg}`; }
 function notify(message) { const toast = document.getElementById('toast'); toast.textContent = message; toast.hidden = false; motion.toast(toast); clearTimeout(toastTimer); toastTimer = setTimeout(() => { toast.hidden = true; }, 3500); }
 function persist(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch { return false; } }
 function saveProfile() { persist('pathfinder-profile', { from: state.from, years: state.years, goal: state.goal }); }
