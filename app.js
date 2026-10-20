@@ -10,6 +10,9 @@ const symbols = {
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>',
   'arrow-up-right': '<path d="M6 18 18 6M6 6h12v12"/>',
   'arrow-right': '<path d="M4 12h16m-6-6 6 6-6 6"/>',
+  'arrow-left': '<path d="M20 12H4m6-6-6 6 6 6"/>',
+  play: '<path d="m9 5 10 7-10 7V5Z"/>',
+  pause: '<path d="M8 5v14M16 5v14"/>',
   x: '<path d="m6 6 12 12M6 18 18 6"/>',
   compass: '<circle cx="12" cy="12" r="9"/><path d="m16 8-2.5 5.5L8 16l2.5-5.5L16 8Z"/>',
   book: '<path d="M12 6c-3-3-7-3-10-2v15c3-1 7-1 10 2 3-3 7-3 10-2V4c-3-1-7-1-10 2Zm0 0v15"/>',
@@ -42,6 +45,7 @@ const prior = readStorage('pathfinder-profile', {});
 const saved = readStorage('pathfinder-saved', []);
 const state = { sector: 'ict-security', qualification: Object.hasOwn(qualifications, prior.qualification || prior.from) ? prior.qualification || prior.from : 'olevel', years: Math.max(0, Math.min(50, Math.floor(Number(prior.years) || 0))), goal: typeof prior.goal === 'string' ? prior.goal : 'ciso', route: 0, saved: new Set(Array.isArray(saved) ? saved.filter(id => typeof id === 'string') : []), dialogMode: '', courseQuery: '' };
 let roles = [], courses = [], sectors = [], roleCourses = {}, metadata = {}, toastTimer;
+let journeyItems = [], journeyIndex = 0, journeySignature = '', journeyTimer;
 const row = document.getElementById('pathway-scroll');
 const dialog = document.getElementById('detail-dialog');
 const detail = document.getElementById('detail-content');
@@ -105,7 +109,86 @@ function skillsMarkup(skills, all = false) {
 function pathwayCard(role, status, index, nextRole) {
   const route = referenceRoute(role);
   const experience = route ? route.years === null ? 'Experience / portfolio' : route.years === 0 ? 'No experience needed' : `${route.years} years` : 'Not published';
-  return `<div class="path-node"><article class="pathway-card"><button class="card-open" data-detail="${esc(role.id)}" aria-label="Open ${esc(role.title)} details"><span class="card-header"><span class="step-marker">${index + 1}</span><span class="stage-label">${esc(stages[role.stage] || role.stage)}</span><span class="card-title">${esc(role.title)}</span></span><span class="card-body">${badge(status)}<span class="requirements"><span class="requirement-row"><span>Qualification</span><b>${route ? `BDQF ${route.bdqf}` : 'Not published'}</b></span><span class="requirement-row"><span>Experience</span><b>${esc(experience)}</b></span><span class="requirement-row"><span>Certifications</span><b>${role.unavailable ? 'Not published' : `${role.certs.length} recommended`}</b></span></span>${role.skills.length ? skillsMarkup(role.skills) : '<span class="pending-skills">Skills and requirements have not been published for this role.</span>'}</span><span class="card-footer"><span>Next up</span><strong class="next-role">${nextRole ? esc(nextRole.title) : 'Your goal'}</strong></span></button><button class="card-save ${state.saved.has(role.id) ? 'saved' : ''}" data-save="${esc(role.id)}" aria-pressed="${state.saved.has(role.id)}" aria-label="${state.saved.has(role.id) ? 'Unsave' : 'Save'} ${esc(role.title)}">${icon('bookmark')}</button></article></div>`;
+  return `<div class="path-node"><article class="pathway-card ${role.id === state.goal ? 'is-goal' : ''}" data-role-card="${esc(role.id)}"><button class="card-open" data-detail="${esc(role.id)}" aria-label="Open ${esc(role.title)} details"><span class="card-header"><span class="card-evolution" aria-hidden="true"><span class="character-sprite" style="--character-frame:${characterFrame(role)}"></span></span><span class="step-marker">${index + 1}</span><span class="stage-label">${esc(stages[role.stage] || role.stage)}</span><span class="card-title">${esc(role.title)}</span></span><span class="card-body">${badge(status)}<span class="requirements"><span class="requirement-row"><span>Qualification</span><b>${route ? `BDQF ${route.bdqf}` : 'Not published'}</b></span><span class="requirement-row"><span>Experience</span><b>${esc(experience)}</b></span><span class="requirement-row"><span>Certifications</span><b>${role.unavailable ? 'Not published' : `${role.certs.length} recommended`}</b></span></span>${role.skills.length ? skillsMarkup(role.skills) : '<span class="pending-skills">Skills and requirements have not been published for this role.</span>'}</span><span class="card-footer"><span>${nextRole ? 'Next up' : 'DESTINATION'}</span><strong class="next-role">${nextRole ? esc(nextRole.title) : 'Your goal'}</strong></span></button><button class="card-save ${state.saved.has(role.id) ? 'saved' : ''}" data-save="${esc(role.id)}" aria-pressed="${state.saved.has(role.id)}" aria-label="${state.saved.has(role.id) ? 'Unsave' : 'Save'} ${esc(role.title)}">${icon('bookmark')}</button></article></div>`;
+}
+function characterFrame(role) {
+  const frames = { 'associate-security-analyst': 1, 'cyber-risk-analyst': 2, 'security-engineer': 3, 'cyber-risk-manager': 4, ciso: 5 };
+  return role ? frames[role.id] ?? ({ entry: 1, mid: 2, senior: 4, top: 5 }[role.stage] ?? 1) : 0;
+}
+function stopJourney() {
+  clearTimeout(journeyTimer); journeyTimer = undefined;
+  const play = document.getElementById('play-journey');
+  play.setAttribute('aria-pressed', 'false'); play.innerHTML = `${icon('play')}<span>Play my journey</span>`;
+}
+function statusNarrative(status) {
+  if (status.type === 'study') return `Your next move: study toward BDQF ${status.needBdqf}, then check the subject and experience requirements for this role.`;
+  if (status.type === 'experience') return `Your qualification level matches a route. Build ${status.years} more ${status.years === 1 ? 'year' : 'years'} of relevant experience and check its other conditions.`;
+  if (status.type === 'ok' && !status.soft) return 'Your level and years match an entry route. Explore the required subjects, certifications and skills before taking your next step.';
+  if (status.type === 'ok') return 'Your level matches an entry route. Relevant experience or a portfolio is also required; check the complete conditions.';
+  return 'This role is included in the source, but its full entry requirements have not been published yet.';
+}
+function selectJourneyStage(index, { scroll = false, reveal = false } = {}) {
+  journeyIndex = Math.max(0, Math.min(journeyItems.length - 1, index));
+  const item = journeyItems[journeyIndex]; if (!item) return;
+  const track = document.getElementById('evolution-track');
+  track.querySelectorAll('[data-evolution]').forEach((button, position) => { button.classList.toggle('is-current', position === journeyIndex); button.classList.toggle('is-passed', position < journeyIndex); button.setAttribute('aria-pressed', String(position === journeyIndex)); });
+  document.getElementById('journey-prev').disabled = journeyIndex === 0;
+  document.getElementById('journey-next').disabled = journeyIndex === journeyItems.length - 1;
+  const qualification = qualifications[state.qualification];
+  const title = item.role?.title || 'You, today. Your story starts here.';
+  const copy = item.role ? statusNarrative(item.status) : `${qualification.label} (BDQF ${qualification.bdqf}${qualification.estimated ? ', estimated' : ''}) · ${state.years} ${state.years === 1 ? 'year' : 'years'} of relevant experience. Build on what you know and explore the steps ahead.`;
+  document.getElementById('journey-insight').innerHTML = `<span class="insight-portrait" aria-hidden="true"><span class="character-sprite" style="--character-frame:${characterFrame(item.role)}"></span></span><div class="insight-copy"><small>${item.role ? `STAGE ${String(journeyIndex + 1).padStart(2, '0')} · ${esc(stages[item.role.stage] || 'CAREER')}` : 'YOUR STARTING POINT'}</small><strong>${esc(title)}</strong><p>${item.role ? `${esc(item.role.summary)} ` : ''}${esc(copy)}</p></div><button class="button button-secondary" ${item.role ? `data-detail="${esc(item.role.id)}"` : 'data-courses'}>${item.role ? 'Explore this role' : 'Find a course'} ${icon('arrow-up-right')}</button>`;
+  row.querySelectorAll('[data-role-card]').forEach(card => card.classList.toggle('is-highlighted', card.dataset.roleCard === item.role?.id));
+  if (scroll) {
+    const button = track.querySelector(`[data-evolution="${journeyIndex}"]`);
+    const left = track.scrollLeft + button.getBoundingClientRect().left - track.getBoundingClientRect().left - (track.clientWidth - button.clientWidth) / 2;
+    track.scrollTo({ left, behavior: motion.enabled ? 'smooth' : 'instant' });
+  }
+  if (reveal) {
+    const card = item.role ? [...row.querySelectorAll('[data-role-card]')].find(card => card.dataset.roleCard === item.role.id) : row.firstElementChild;
+    if (card) row.scrollTo({ left: row.scrollLeft + card.getBoundingClientRect().left - row.getBoundingClientRect().left - 8, behavior: motion.enabled ? 'smooth' : 'instant' });
+  }
+}
+function renderEvolution(roadmap) {
+  stopJourney();
+  const panel = document.getElementById('journey-panel'); panel.hidden = !roadmap;
+  const preview = document.querySelector('.future-preview'); preview.hidden = !roadmap;
+  document.querySelector('.requirements-heading').hidden = !roadmap;
+  if (!roadmap) { journeyItems = []; journeySignature = ''; return; }
+  const goal = roadmap.steps.at(-1).role;
+  document.getElementById('future-character').style.setProperty('--character-frame', characterFrame(goal));
+  document.getElementById('future-title').textContent = goal.title;
+  document.getElementById('future-stage').textContent = stages[goal.stage] || 'YOUR GOAL';
+  const signature = roadmap.ids.join(',');
+  if (signature !== journeySignature) { journeyIndex = 0; journeySignature = signature; }
+  journeyItems = [{ role: null }, ...roadmap.steps];
+  const track = document.getElementById('evolution-track'); const scrollLeft = track.scrollLeft;
+  track.style.setProperty('--journey-count', journeyItems.length);
+  // Keep stage controls stable while qualification or experience changes.
+  if (track.dataset.route !== signature) {
+    track.innerHTML = journeyItems.map((item, index) => `<button class="evolution-step" data-evolution="${index}" aria-pressed="false" aria-label="Explore stage ${index + 1}: ${esc(item.role?.title || 'Your starting point')}"><span class="evolution-level">${String(index + 1).padStart(2, '0')}</span><span class="evolution-portrait" aria-hidden="true"><span class="character-sprite" style="--character-frame:${characterFrame(item.role)}"></span></span><span class="evolution-node" aria-hidden="true">${index === journeyItems.length - 1 ? icon('check') : ''}</span><span class="evolution-label">${item.role ? esc(stages[item.role.stage] || 'CAREER') : 'YOU ARE HERE'}</span><span class="evolution-role">${esc(item.role?.title || 'The beginning')}</span></button>`).join('');
+    track.dataset.route = signature; track.scrollLeft = 0;
+  } else track.scrollLeft = scrollLeft;
+  document.getElementById('route-steps').textContent = roadmap.steps.length;
+  document.getElementById('route-ready').textContent = roadmap.steps.filter(step => step.status.type === 'ok' && !step.status.soft).length;
+  const next = roadmap.steps.find(step => step.status.type !== 'ok' || step.status.soft);
+  document.getElementById('route-focus').textContent = next?.status.type === 'study' ? `BDQF ${next.status.needBdqf}` : next?.status.type === 'experience' ? `+${next.status.years} ${next.status.years === 1 ? 'year' : 'years'}` : next ? 'Explore' : 'Skills';
+  document.getElementById('route-focus-label').textContent = next?.status.type === 'study' ? 'next study milestone' : next?.status.type === 'experience' ? 'next experience milestone' : next ? 'check role conditions' : 'check all role conditions';
+  selectJourneyStage(journeyIndex);
+}
+function playJourney() {
+  if (journeyTimer) { stopJourney(); return; }
+  if (!motion.enabled || !journeyItems.length) return;
+  const play = document.getElementById('play-journey');
+  play.setAttribute('aria-pressed', 'true'); play.innerHTML = `${icon('pause')}<span>Pause journey</span>`;
+  selectJourneyStage(0, { scroll: true, reveal: true });
+  function advance() {
+    if (!motion.enabled || document.hidden || dialog.open) { stopJourney(); return; }
+    if (journeyIndex >= journeyItems.length - 1) { stopJourney(); return; }
+    selectJourneyStage(journeyIndex + 1, { scroll: true, reveal: true });
+    journeyTimer = setTimeout(advance, 1600);
+  }
+  journeyTimer = setTimeout(advance, 1600);
 }
 function startingCard(roadmap) {
   const qualification = qualifications[state.qualification];
@@ -135,6 +218,7 @@ function renderPathway({ keepScroll = false } = {}) {
   document.getElementById('share-button').disabled = !roadmap;
   row.innerHTML = roadmap ? startingCard(roadmap) + roadmap.steps.map(({ role, status }, index) => pathwayCard(role, status, index, roadmap.steps[index + 1]?.role)).join('') : `<div class="empty-state"><span class="empty-icon">${icon('compass')}</span><h3>This pathway is waiting for its data.</h3><p>The supplied specification has no complete ${esc(sector.name)} role examples. Choose Cyber Security to explore the available progression and requirements.</p><button class="button button-primary" data-sector="ict-security">Explore Cyber Security ${icon('arrow-right')}</button></div>`;
   row.scrollLeft = scrollLeft;
+  renderEvolution(roadmap);
   motion.refresh(row, { animate: !keepScroll });
 }
 function changeSector(sector) { if (!Object.hasOwn(sectorDisplay, sector)) return; state.sector = sector; state.goal = defaultGoal(sectorRoles()); state.route = 0; persistProfile(); renderPathway(); updateLocation(true); }
@@ -145,7 +229,7 @@ function linkedCourses(id) {
 }
 function fitText(course) { if (course.fit === 'builds-skills') return 'Builds skills; not an entry qualification.'; if (course.fit === 'with-experience') return `Qualification route; ${course.years} years of experience also required.`; if (course.fit === 'needs-experience-or-portfolio') return 'Experience or a portfolio is also required.'; return 'Meets a qualification route; all subject and certification conditions still apply.'; }
 function courseLink(course) { return `<a class="course-link" href="${safeUrl(course.url)}" target="_blank" rel="noopener noreferrer"><span class="course-link-icon">${icon('graduation')}</span><span><strong>${esc(course.title)}</strong><small>${esc(fitText(course))}</small>${course.why ? `<small>${esc(course.why)}</small>` : ''}${course.bdqfSource === 'estimated' ? '<small>Estimated BDQF — confirm with COSMO.</small>' : ''}</span>${icon('arrow-up-right')}</a>`; }
-function openDialog(markup, mode) { state.dialogMode = mode; detail.innerHTML = markup; if (!dialog.open) dialog.showModal(); dialog.scrollTop = 0; document.getElementById('close-detail').focus({ preventScroll: true }); motion.refresh(dialog); }
+function openDialog(markup, mode) { stopJourney(); state.dialogMode = mode; detail.innerHTML = markup; if (!dialog.open) dialog.showModal(); dialog.scrollTop = 0; document.getElementById('close-detail').focus({ preventScroll: true }); motion.refresh(dialog); }
 function dialogHeader(kicker, title, description = '') { return `<header class="detail-header"><span class="detail-kicker">${kicker}</span><h2 id="detail-title">${title}</h2>${description ? `<p>${description}</p>` : ''}</header>`; }
 function openRole(id) {
   const role = roles.find(item => item.id === id); if (!role) return;
@@ -167,6 +251,8 @@ function openSaved() { const items = roles.filter(role => state.saved.has(role.i
 function openAbout() { openDialog(dialogHeader('ABOUT THIS GUIDE', 'A clearer starting point.') + `<div class="detail-body"><section class="detail-section"><h3>Where the data comes from</h3><p>This unofficial student guide uses the ${link('https://ccctmacademy.edu.bn/showcase_2026/openapi.json', 'supplied OpenAPI specification')} and its BIICF-derived career information.</p><p>${metadata.mode === 'spec-examples' ? `The full data endpoints returned 404 errors when the data was retrieved. This version contains ${roles.length} complete role examples and ${courses.length} complete course examples from the specification. Empty sectors are shown without invented career requirements.` : 'The page uses a locally bundled snapshot of the public career datasets.'}</p></section><section class="detail-section"><h3>How to read the pathway</h3><p>The cards follow the source's career progression links. The qualification and experience fields describe the same entry route. Ready now checks level and years only; subject, certification, portfolio and other entry conditions still apply. Experience is cumulative and is never added across steps.</p><p>BTEC equivalences marked with an asterisk are estimated and must be confirmed with COSMO. This guide is not affiliated with AITI, MISC or BIICF.</p></section><section class="detail-section"><h3>Your choices stay in this browser</h3><p>Bookmarks, qualification choices and the animation preference are stored locally. No account is needed.</p></section><div class="dialog-actions">${link('https://www.biicf.bn', 'Official BIICF framework', 'button button-primary')}${link('https://cosmo.edu.bn', 'COSMO courses', 'button button-secondary')}</div></div>`, 'about'); }
 
 document.addEventListener('click', async event => {
+  const evolution = event.target.closest('[data-evolution]');
+  if (evolution) { stopJourney(); selectJourneyStage(Number(evolution.dataset.evolution), { scroll: true, reveal: true }); return; }
   const qualification = event.target.closest('[data-qualification]');
   if (qualification) { state.qualification = qualification.dataset.qualification; persistProfile(); renderPathway({ keepScroll: true }); updateLocation(); return; }
   const sector = event.target.closest('[data-sector]'); if (sector) { changeSector(sector.dataset.sector); return; }
@@ -176,6 +262,29 @@ document.addEventListener('click', async event => {
   const goal = event.target.closest('[data-goal]'); if (goal) { const selected = roles.find(item => item.id === goal.dataset.goal); if (!selected) return; state.sector = selected.sector; state.goal = selected.id; state.route = 0; dialog.close(); persistProfile(); renderPathway(); updateLocation(true); document.getElementById('goal-select').focus({ preventScroll: true }); return; }
   const route = event.target.closest('[data-route]'); if (route) { state.route = Number(route.dataset.route); renderPathway(); updateLocation(); return; }
   if (event.target.closest('[data-courses]')) openCourses();
+});
+document.getElementById('journey-prev').addEventListener('click', () => { stopJourney(); selectJourneyStage(journeyIndex - 1, { scroll: true, reveal: true }); });
+document.getElementById('journey-next').addEventListener('click', () => { stopJourney(); selectJourneyStage(journeyIndex + 1, { scroll: true, reveal: true }); });
+document.getElementById('play-journey').addEventListener('click', playJourney);
+document.getElementById('evolution-track').addEventListener('keydown', event => {
+  const button = event.target.closest('[data-evolution]');
+  if (!button || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+  event.preventDefault(); stopJourney();
+  const index = Number(button.dataset.evolution);
+  selectJourneyStage(event.key === 'Home' ? 0 : event.key === 'End' ? journeyItems.length - 1 : index + (event.key === 'ArrowRight' ? 1 : -1), { scroll: true, reveal: true });
+  document.querySelector(`[data-evolution="${journeyIndex}"]`).focus({ preventScroll: true });
+});
+function syncJourneyMotion() {
+  const play = document.getElementById('play-journey');
+  play.disabled = !motion.enabled;
+  play.title = motion.enabled ? 'Preview your career stages in sequence' : 'Enable motion to play the journey. You can explore every stage manually.';
+  if (!motion.enabled) stopJourney();
+}
+document.addEventListener('pathfinder-motion-change', syncJourneyMotion);
+document.addEventListener('visibilitychange', () => { if (document.hidden) stopJourney(); });
+document.querySelector('.hero-cta').addEventListener('click', event => {
+  event.preventDefault(); const target = document.getElementById('journey-panel').hidden ? document.getElementById('main-content') : document.getElementById('journey-panel');
+  target.scrollIntoView({ behavior: motion.enabled ? 'smooth' : 'instant', block: 'start' }); target.focus({ preventScroll: true });
 });
 document.getElementById('experience-slider').addEventListener('input', event => { state.years = Math.max(0, Math.min(50, Math.floor(Number(event.target.value) || 0))); persistProfile(); renderPathway({ keepScroll: true }); updateLocation(); });
 document.getElementById('goal-select').addEventListener('change', event => { state.goal = event.target.value; state.route = 0; persistProfile(); renderPathway(); updateLocation(true); });
@@ -191,7 +300,7 @@ dialog.addEventListener('click', event => { if (event.target !== dialog) return;
 dialog.addEventListener('close', () => { state.dialogMode = ''; });
 document.addEventListener('input', event => { if (event.target.id === 'course-search') { state.courseQuery = event.target.value; renderCourses(); } });
 window.addEventListener('popstate', () => { readLocation(); renderPathway(); });
-fillIcons(); updateProfile();
+fillIcons(); updateProfile(); syncJourneyMotion();
 async function loadData() {
   const notice = document.getElementById('data-notice');
   try {
@@ -200,7 +309,7 @@ async function loadData() {
     if (!Array.isArray(roles) || !roles.length || !Array.isArray(courses) || !Array.isArray(sectors)) throw new Error('Invalid pathway data');
     state.saved = new Set([...state.saved].filter(id => roles.some(role => role.id === id)));
     readLocation(); renderPathway();
-    notice.innerHTML = `${metadata.mode === 'spec-examples' ? `<strong>Preview data:</strong> ${roles.length} role examples and ${courses.length} course examples from the specification. Full dataset links are currently unavailable. ` : ''}<span>*Ready now checks qualification level and years only. All other route requirements still apply.</span>`;
+    notice.innerHTML = `${metadata.mode === 'spec-examples' ? `<strong>Preview data:</strong> ${roles.length} role examples and ${courses.length} course examples from the specification. Full dataset links were unavailable when this snapshot was retrieved. ` : ''}<span>*Ready now checks qualification level and years only. All other route requirements still apply.</span>`;
     motion.refresh(document);
   } catch { row.innerHTML = '<div class="empty-state"><h3>The pathway data could not be loaded.</h3><p>Please refresh the page to try again.</p></div>'; notice.textContent = 'Use an HTTP server to open this page and its data files.'; }
 }

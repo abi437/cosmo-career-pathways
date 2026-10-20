@@ -1,6 +1,6 @@
 /* Short, finite transitions keep the pathway easy to scan and operate. */
 :root { --motion-ease: cubic-bezier(.2, .75, .2, 1); }
-.qualification-pill, .sector-tab, .icon-button, .card-save, .button, .course-link, .motion-control, .route-button {
+.qualification-pill, .sector-tab, .icon-button, .card-save, .button, .course-link, .motion-control, .route-button, .hero-cta, .journey-autoplay, .journey-nav button, .evolution-step {
   transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 220ms var(--motion-ease);
 }
 .pathway-card { transition: transform 230ms var(--motion-ease), border-color 200ms ease, box-shadow 230ms ease; }
@@ -8,11 +8,18 @@
 .pathway-card .next-role { transition: transform 220ms var(--motion-ease); }
 .pathway-card:hover .next-role { transform: translateX(2px); }
 .skill-fill { transition: width 500ms var(--motion-ease); }
+.evolution-node { transition: background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease; }
+.evolution-portrait > .character-sprite { transition: transform 280ms var(--motion-ease), filter 240ms ease; }
+.evolution-step:hover .evolution-portrait > .character-sprite, .evolution-step:focus-visible .evolution-portrait > .character-sprite { transform: translateY(-4px); }
+.evolution-step.is-current .evolution-portrait > .character-sprite { transform: translateY(-3px); }
+.hero-cta:hover svg { transform: translateX(2px); }
+.hero-cta svg { transition: transform 220ms var(--motion-ease); }
 .qualification-pill:active, .icon-button:active, .button:active { transform: translateY(1px); }
 .hero-line { display: block; }
 html.motion-ready .hero h1 { animation: headline-enter 650ms var(--motion-ease) both; }
 html.motion-ready .hero-description, html.motion-ready .hero-copy > p { animation: copy-enter 650ms 80ms var(--motion-ease) both; }
 html.motion-ready .profile-panel { animation: copy-enter 650ms 140ms var(--motion-ease) both; }
+html.motion-ready .future-preview { animation: future-enter 700ms 90ms var(--motion-ease) both; }
 html.motion-ready .detail-dialog[open] { animation: detail-enter 260ms var(--motion-ease) both; }
 html.motion-ready .detail-dialog[open]::backdrop { animation: backdrop-enter 200ms ease both; }
 html.motion-ready .toast:not([hidden]) { animation: toast-enter 240ms var(--motion-ease) both; }
@@ -21,9 +28,12 @@ html.motion-ready .toast:not([hidden]) { animation: toast-enter 240ms var(--moti
 @keyframes detail-enter { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
 @keyframes backdrop-enter { from { opacity: 0; } to { opacity: 1; } }
 @keyframes toast-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes future-enter { from { opacity: .4; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
 html.motion-paused *, html.motion-paused *::before, html.motion-paused *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 html.motion-paused .pathway-card:hover, html.motion-paused .pathway-card:focus-within, html.motion-paused .pathway-card:hover .next-role { transform: none; }
+html.motion-paused .evolution-step .evolution-portrait > .character-sprite, html.motion-paused .hero-cta:hover svg { transform: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .pathway-card:hover, .pathway-card:focus-within, .pathway-card:hover .next-role { transform: none; }
+  .evolution-step .evolution-portrait > .character-sprite, .hero-cta:hover svg { transform: none !important; }
 }

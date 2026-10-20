@@ -82,12 +82,12 @@ try {
     const result = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: full, ...(full ? { clip: { x: 0, y: 0, width: dimensions.width, height: dimensions.height, scale: 1 } } : {}) });
     await writeFile(path.join(artifacts, name), Buffer.from(result.data, 'base64'));
   }
-  async function checkHorizontalScroll() {
-    await evaluate('document.querySelector(".pathway-scroll").scrollIntoView({ block: "center", behavior: "instant" }); document.querySelector(".pathway-scroll").scrollLeft = 0'); await frames();
-    const rect = await evaluate('(() => { const element = document.querySelector(".pathway-scroll"); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: Math.min(innerHeight - 20, rect.top + rect.height / 2), overflow: element.scrollWidth - element.clientWidth }; })()');
-    assert(rect.overflow > 50, 'The pathway row should contain horizontally scrollable cards');
+  async function checkHorizontalScroll(selector = '.pathway-scroll') {
+    await evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({ block: "center", behavior: "instant" }); document.querySelector(${JSON.stringify(selector)}).scrollLeft = 0`); await frames();
+    const rect = await evaluate(`(() => { const element = document.querySelector(${JSON.stringify(selector)}); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: Math.min(innerHeight - 20, rect.top + rect.height / 2), overflow: element.scrollWidth - element.clientWidth }; })()`);
+    assert(rect.overflow > 50, `${selector} should contain horizontally scrollable stages`);
     await call('Input.dispatchMouseEvent', { type: 'mouseWheel', x: rect.x, y: rect.y, deltaX: 500, deltaY: 0 });
-    await waitFor('document.querySelector(".pathway-scroll").scrollLeft > 50', 'horizontal wheel input to scroll the pathway');
+    await waitFor(`document.querySelector(${JSON.stringify(selector)}).scrollLeft > 50`, `horizontal wheel input to scroll ${selector}`);
   }
   async function navigate(query = '') {
     await load('Page.navigate', { url: new URL(query, baseUrl).href });
@@ -99,21 +99,47 @@ try {
   await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
   await navigate(); await evaluate('localStorage.clear()'); await load('Page.reload');
   await waitFor('document.querySelectorAll(".pathway-card").length === 5', 'the default five-role security pathway');
-  assert.equal(await evaluate('document.querySelector("h1").textContent.trim()'), 'Your career, step by step.');
+  assert.equal(await evaluate('document.querySelector("h1").textContent.replace(/\\s+/g, "")'), 'Yourfuture.Onelevelatatime.');
   assert(await evaluate('!!document.querySelector(".brandbar") && !!document.querySelector(".study-card")'), 'Default layout is missing its brand bar or study preparation');
   assert.equal(await evaluate('document.querySelector(".qualification-pill[aria-pressed=true]").dataset.qualification'), 'olevel');
   assert.equal(await evaluate('document.querySelector("#goal-select").value'), 'ciso');
   assert.equal(await evaluate('document.querySelector("#experience-slider").max'), '50');
+  assert.equal(await evaluate('document.querySelectorAll("[data-evolution]").length'), 6, 'The default journey should include a starting point and five career stages');
+  assert.match(await evaluate('document.querySelector("#future-title").textContent'), /Chief Information Security Officer \(CISO\)/);
+  assert.equal(await evaluate('document.querySelector("#future-character").style.getPropertyValue("--character-frame")'), '5');
+  assert.match(await evaluate('document.querySelector(".journey-footnote").textContent'), /not BDQF levels or guaranteed promotions/i, 'Visual progression must be distinguished from formal qualifications');
+  const sprite = await evaluate(`new Promise((resolve, reject) => {
+    const source = getComputedStyle(document.querySelector('#future-character')).backgroundImage.match(/url\\(["']?(.*?)["']?\\)/)?.[1];
+    if (!source) { reject(new Error('The future character has no image source')); return; }
+    const image = new Image(); image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight }); image.onerror = () => reject(new Error('The character sprite failed to load')); image.src = source;
+  })`);
+  assert.deepEqual(sprite, { width: 2172, height: 724 }, 'The six-frame character artwork did not decode correctly');
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Desktop document has horizontal overflow');
   await screenshot('desktop.png', true);
+
+  await click('[data-evolution="5"]');
+  assert(await evaluate('document.querySelector("#journey-insight .insight-copy strong").textContent.includes("(CISO)") && document.querySelector("[data-role-card=ciso]").classList.contains("is-highlighted")'), 'Selecting the final stage did not connect its insight and requirement card');
+  assert.equal(await evaluate('document.querySelector("#journey-next").disabled'), true);
+  await click('#journey-prev'); assert.equal(await evaluate('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution'), '4');
+  await evaluate('document.querySelector("[data-evolution=\\"4\\"]").focus()');
+  for (const [key, index] of [['Home', '0'], ['End', '5'], ['ArrowLeft', '4'], ['ArrowRight', '5']]) {
+    await call('Input.dispatchKeyEvent', { type: 'keyDown', key, code: key });
+    await call('Input.dispatchKeyEvent', { type: 'keyUp', key, code: key });
+    assert.equal(await evaluate('document.activeElement.dataset.evolution'), index, `${key} did not focus the matching stage`);
+    assert.equal(await evaluate('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution'), index, `${key} did not select the matching stage`);
+  }
 
   await click('[data-qualification="btec3"]');
   assert.equal(await evaluate('document.querySelector("[data-qualification=btec3]").getAttribute("aria-pressed")'), 'true');
   assert(await evaluate('document.querySelectorAll(".status-study, .status-experience").length > 0'), 'BTEC Level 3 does not show remaining study or experience requirements');
+  await evaluate('window.stageBeforeProfileChange = document.querySelector("[data-evolution=\\"5\\"]"); window.stageBeforeProfileChange.focus()');
   await click('[data-qualification="hnd"]');
+  assert(await evaluate('window.stageBeforeProfileChange === document.querySelector("[data-evolution=\\"5\\"]") && document.activeElement === window.stageBeforeProfileChange'), 'Changing qualification replaced or unfocused an existing journey control');
   const slider = await evaluate('(() => { const input = document.querySelector("#experience-slider"); input.focus(); input.value = "4"; input.dispatchEvent(new Event("input", { bubbles: true })); return { focus: document.activeElement === input, output: document.querySelector("#experience-output").textContent.trim(), ready: document.querySelectorAll(".pathway-card .status-ready").length }; })()');
   assert(slider.focus, 'Updating experience replaced the focused slider'); assert.equal(slider.output, '4');
   assert.equal(slider.ready, 3, 'HND and four years should make three security steps ready');
+  assert.equal(await evaluate('document.querySelector("#route-ready").textContent'), '3', 'The journey summary is inconsistent with matching role requirements');
+  assert(await evaluate('window.stageBeforeProfileChange === document.querySelector("[data-evolution=\\"5\\"]")'), 'Changing experience replaced the journey stage controls');
   assert.equal(await evaluate('document.querySelectorAll(".pathway-card .status-experience").length'), 2);
   assert(!await evaluate('!!document.querySelector(".study-card")'), 'HND should not need a preparation card');
   await checkHorizontalScroll();
@@ -123,6 +149,7 @@ try {
   assert(await evaluate('document.querySelector("#detail-dialog").textContent.includes("CompTIA Security+")'), 'Full certification list is absent');
   await escape(); await click('.card-open[data-detail="associate-security-analyst"]'); await click('[data-goal="associate-security-analyst"]');
   assert(await evaluate('!document.querySelector("#detail-dialog").open && document.querySelector("#goal-select").value === "associate-security-analyst" && document.querySelectorAll(".pathway-card").length === 1'), 'A detail goal did not produce the one-step pathway');
+  assert.equal(await evaluate('document.querySelectorAll("[data-evolution]").length'), 2, 'A one-role goal should show a starting point and that role');
   await click('.card-save[data-save="associate-security-analyst"]');
   assert.equal(await evaluate('document.querySelector(".card-save[data-save=associate-security-analyst]").getAttribute("aria-pressed")'), 'true');
   assert(await evaluate('JSON.parse(localStorage.getItem("pathfinder-saved")).includes("associate-security-analyst")'), 'Saved role was not persisted');
@@ -139,6 +166,9 @@ try {
   assert(await evaluate('!!document.querySelector(".empty-state") && document.querySelectorAll(".pathway-card").length === 0'), 'IT Services has no empty state');
   await setValue('#more-sectors', 'digital-media'); assert.equal(await evaluate('document.querySelectorAll(".pathway-card").length'), 0);
   await click('#sector-tabs [data-sector="data-ai"]'); assert.equal(await evaluate('document.querySelectorAll(".pathway-card").length'), 1);
+  assert.equal(await evaluate('document.querySelectorAll("[data-evolution]").length'), 2);
+  await click('[data-evolution="1"]');
+  assert.match(await evaluate('document.querySelector("#journey-insight").textContent'), /not been published/i, 'Data Architect progression should explain unpublished requirements');
   await click('.card-open[data-detail="data-architect"]');
   assert(await evaluate('/not published|coming soon|unavailable/i.test(document.querySelector("#detail-dialog").textContent)'), 'Data Architect should explain unavailable detail data');
   await closeDialog(); await click('#sector-tabs [data-sector="ict-security"]');
@@ -172,12 +202,13 @@ try {
   await navigate('?sector=ict-security&from=olevel&exp=0&goal=ciso'); await frames();
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Mobile document has horizontal overflow');
   assert(await evaluate('[...document.querySelectorAll(".qualification-pill, #experience-slider, #goal-select, #more-sectors")].every(element => { const r = element.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; })'), 'Mobile profile controls are clipped');
-  await screenshot('mobile.png', true); await checkHorizontalScroll();
+  await screenshot('mobile.png', true); await checkHorizontalScroll('#evolution-track'); await checkHorizontalScroll();
+  assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Scrolling mobile journey tracks caused document overflow');
   await click('.card-open[data-detail="associate-security-analyst"]');
   assert(await evaluate('(() => { const dialog = document.querySelector("#detail-dialog"); const r = dialog.getBoundingClientRect(); return dialog.open && r.left >= 0 && r.right <= innerWidth && r.height <= innerHeight; })()'), 'Mobile role details do not fit');
   await screenshot('mobile-detail.png'); await escape();
   assert.deepEqual(errors, [], 'Uncaught browser errors');
-  console.log('PASS: screenshot layout, profile/focus, pathway statuses, sectors, goals, details, saved persistence, courses, data provenance, deep links/popstate, sharing, horizontal scrolling and mobile layout.');
+  console.log('PASS: six-stage illustrated evolution, decoded character artwork, stage/keyboard navigation, stable focused controls, profile/readiness, pathway statuses, sectors, goals, details, saved persistence, courses, provenance, deep links/popstate, sharing and mobile track scrolling/layout.');
   console.log('Screenshots saved in artifacts/desktop.png, artifacts/mobile.png and artifacts/mobile-detail.png.');
   await call('Browser.close');
 } finally { if (ws?.readyState === WebSocket.OPEN) ws.close(); chrome.kill(); }

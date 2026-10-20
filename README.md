@@ -1,6 +1,10 @@
 # COSMO Career Pathways
 
-A responsive static career pathway page matching the supplied screenshot: a compact blue header, qualification pills, an experience slider, sector tabs and horizontally scrollable career steps. Open a step for its complete requirements, skills, certifications and connected COSMO courses. Bookmarks, a course catalogue and shareable goals are included. Built with plain HTML, CSS and JavaScript; no runtime dependencies or account required.
+A responsive career pathway explorer in COSMO blue and yellow. A connected character journey visualises a possible future, from a student's first steps to a technology leader. Select a stage, use the keyboard controls or play the finite journey preview, then explore the real qualifications, skills, certifications and experience behind each role. Qualification pills, an experience slider, sector tabs, bookmarks, a course catalogue and shareable goals are included. Built with plain HTML, CSS and JavaScript; no runtime dependencies or account required.
+
+Live website: https://abi437.github.io/cosmo-career-pathways/
+
+Public source repository: https://github.com/abi437/cosmo-career-pathways
 
 ## Run
 
@@ -49,8 +53,12 @@ After the first successful deployment, find the live website link in **Settings 
 
 ## Motion and interactions
 
-The main palette uses blue `#1E2859` and yellow `#FCD00F`, with navy text on yellow controls and light blue surfaces. The screenshot layout uses finite horizontal card entrances, subtle hover feedback, sliding detail panels and bookmark feedback. Slider updates remain immediate and retain keyboard focus.
+The main palette uses blue `#1E2859` and yellow `#FCD00F`, with navy text on yellow controls and light blue surfaces. The connected journey displays a starting character and each available career step, using a six-frame illustration that evolves with career stage. These visual stages are illustrative, not BDQF levels, earned achievements or guaranteed promotions. The goal preview shows a possible future; role requirements remain grounded in the supplied data.
+
+The journey preview advances only after the visitor presses Play, ends at the final stage and stops when a stage is selected, the profile changes, a dialog opens, the tab is hidden or motion is disabled. Manual stage selection remains available with reduced motion. Finite horizontal card entrances, hover feedback, sliding detail panels and bookmark feedback add detail. Slider updates remain immediate and retain keyboard focus.
 
 The top-bar motion control pauses animations and remembers the choice locally. System reduced-motion settings take precedence. Content stays visible and usable without motion. Horizontal pathways support native scrollbars, trackpads and keyboard navigation.
 
 With the local server running, use `node scripts/motion-check.mjs` to check normal motion, pausing, reduced motion, input focus, dialogs and mobile layout in Chrome.
+
+Character artwork: [`assets/career-evolution.png`](assets/career-evolution.png), generated with the built-in image generator. The final prompt and provenance are documented in [`assets/career-evolution-prompt.md`](assets/career-evolution-prompt.md). The transparent 2172 × 724 image contains six equal 362 × 724 sprite cells and is bundled locally with the static site.

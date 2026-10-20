@@ -68,6 +68,9 @@ try {
     await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`); await frames();
   }
   async function ready() { await waitFor('document.querySelectorAll(".pathway-card").length === 5 && document.querySelector("#motion-toggle")', 'the security pathway and motion controls'); }
+  async function revealPathway() {
+    await evaluate('document.querySelector(".pathway-scroll").scrollIntoView({ block: "center", behavior: "instant" })'); await frames();
+  }
   const active = 'document.getAnimations().filter(animation => animation.playState === "running" || animation.pending)';
   const cardActive = '[...document.querySelectorAll(".pathway-card, .study-card, .starting-card")].flatMap(element => element.getAnimations({ subtree: true })).filter(animation => animation.playState === "running" || animation.pending)';
   const contentVisible = `[...document.querySelectorAll('.pathway-card, .study-card, .starting-card')].every(element => {
@@ -97,6 +100,7 @@ try {
   await reduced('no-preference'); await load('Page.navigate', { url: fixtureUrl }); await ready();
   await evaluate('localStorage.clear(); localStorage.setItem("pathfinder-motion", "enabled")'); await load('Page.reload'); await ready();
   assert.equal(await evaluate('document.querySelector("#motion-toggle").getAttribute("aria-pressed")'), 'false');
+  await revealPathway();
   await waitFor(`${cardActive}.length > 0`, 'finite pathway entrance to start');
   assert(await evaluate(`${cardActive}.every(animation => animation.effect.getComputedTiming().iterations !== Infinity)`), 'A pathway card has an infinite animation');
   await settle(); await waitFor(`${active}.length === 0`, 'finite header and profile entrances to finish');
@@ -104,6 +108,14 @@ try {
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Desktop document overflows with motion');
   await click('[data-qualification="hnd"]'); await checkSliderFocus(4);
   assert.equal(await evaluate('document.querySelectorAll(".pathway-card .status-ready").length'), 3);
+  await click('#play-journey');
+  assert.equal(await evaluate('document.querySelector("#play-journey").getAttribute("aria-pressed")'), 'true', 'Journey playback did not start');
+  await waitFor('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution === "1"', 'journey playback to advance to the next stage');
+  await click('#play-journey');
+  assert.equal(await evaluate('document.querySelector("#play-journey").getAttribute("aria-pressed")'), 'false', 'Journey playback did not pause');
+  const pausedStage = await evaluate('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution');
+  await sleep(1800);
+  assert.equal(await evaluate('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution'), pausedStage, 'Paused journey continued to advance');
   await click('.card-open[data-detail="associate-security-analyst"]');
   assert(await evaluate('document.querySelector("#detail-dialog").open'), 'Animated details did not open');
   await waitFor('!document.querySelector("#detail-dialog").getAnimations({ subtree: true }).some(animation => animation.playState === "running" || animation.pending)', 'modal entrance to finish');
@@ -113,11 +125,18 @@ try {
 
   await click('[data-qualification="olevel"]');
   await click('#sector-tabs [data-sector="ict-security"]');
+  await revealPathway();
   await waitFor(`${cardActive}.length > 0`, 'a fresh entrance before pausing');
+  await click('#play-journey');
   await click('#motion-toggle');
   await waitFor(`document.documentElement.classList.contains('motion-paused') && ${active}.length === 0`, 'manual pause to stop animations');
   assert.equal(await evaluate('document.querySelector("#motion-toggle").getAttribute("aria-pressed")'), 'true');
   assert.equal(await evaluate('localStorage.getItem("pathfinder-motion")'), 'paused');
+  assert(await evaluate('document.querySelector("#play-journey").disabled && document.querySelector("#play-journey").getAttribute("aria-pressed") === "false"'), 'Motion off should immediately stop and disable journey playback');
+  await sleep(1800);
+  assert.equal(await evaluate('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution'), '0', 'Motion off left a journey timer running');
+  await click('[data-evolution="2"]');
+  assert.equal(await evaluate('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution'), '2', 'Motion off should preserve manual stage exploration');
   assert(await evaluate(contentVisible), 'Paused motion hides pathway content');
   await load('Page.reload'); await ready(); await waitFor(`${active}.length === 0`, 'persisted pause after reload');
   assert(await evaluate('document.documentElement.classList.contains("motion-paused")'), 'Pause preference did not survive reload');
@@ -128,8 +147,16 @@ try {
   await settle(); await load('Page.reload'); await ready();
   assert(!await evaluate('document.documentElement.classList.contains("motion-paused")'), 'Enabled motion did not survive reload'); await settle();
 
+  await click('#play-journey');
+  await waitFor('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution === "1"', 'journey playback before changing the system motion setting');
   await reduced('reduce'); await waitFor(`${active}.length === 0`, 'system reduced motion to stop animation');
   assert.equal(await evaluate('document.querySelector("#motion-toggle").disabled'), true, 'Reduced motion should disable the motion control');
+  assert(await evaluate('document.querySelector("#play-journey").disabled && document.querySelector("#play-journey").getAttribute("aria-pressed") === "false"'), 'Reduced motion should immediately stop and disable journey playback');
+  const reducedStage = await evaluate('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution');
+  await sleep(1800);
+  assert.equal(await evaluate('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution'), reducedStage, 'Reduced motion left a journey timer running');
+  await click('[data-evolution="5"]');
+  assert(await evaluate('document.querySelector("#journey-insight .insight-copy strong").textContent.includes("(CISO)")'), 'Reduced motion should preserve manual stage exploration');
   assert(await evaluate(contentVisible), 'System reduced motion hides pathway content'); await checkSliderFocus(6);
   await load('Page.reload'); await ready(); await waitFor(`${active}.length === 0`, 'reduced motion to remain still after reload');
   assert(await evaluate(contentVisible), 'Reload with reduced motion hides pathway content');
@@ -147,6 +174,6 @@ try {
   await waitFor('!document.querySelector("#detail-dialog").getAnimations({ subtree: true }).some(animation => animation.playState === "running" || animation.pending)', 'mobile modal entrance to finish');
   assert(await evaluate('(() => { const r = document.querySelector("#detail-dialog").getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.height <= innerHeight; })()'), 'Animated mobile details do not fit');
   await escape(); await settle(); assert.deepEqual(errors, [], 'Uncaught browser errors during motion checks');
-  console.log('PASS: finite pathway entrances, visible settled content, slider focus, modal animation/Escape, pause/resume persistence, system reduced motion and mobile motion layout.');
+  console.log('PASS: finite pathway entrances, visible settled content, slider focus, journey play/pause progression, immediate playback stop with manual/system motion controls, manual stage exploration, modal animation/Escape, pause/resume persistence and mobile motion layout.');
   await call('Browser.close');
 } finally { if (ws?.readyState === WebSocket.OPEN) ws.close(); chrome.kill(); }

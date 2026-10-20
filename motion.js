@@ -46,6 +46,7 @@ export function initializeMotion() {
       toggle.innerHTML = `<svg class="icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${enabled() ? '<path d="M8 5v14M16 5v14"/>' : '<path d="m9 5 10 7-10 7V5Z"/>'}</svg><span class="motion-control-label">${reduced.matches ? 'Motion reduced' : enabled() ? 'Motion on' : 'Motion off'}</span>`;
     }
     if (!enabled()) { for (const animation of animations.values()) animation.cancel(); animations.clear(); observer?.disconnect(); watched.clear(); }
+    document.dispatchEvent(new CustomEvent('pathfinder-motion-change', { detail: { enabled: enabled() } }));
     refresh();
   }
   toggle?.addEventListener('click', () => { if (reduced.matches) return; paused = !paused; try { localStorage.setItem('pathfinder-motion', paused ? 'paused' : 'enabled'); } catch {} sync(); });
