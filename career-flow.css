@@ -1,0 +1,375 @@
+@charset "UTF-8";
+
+/* The selection flow leads into the same visual pathway as the career journey. */
+#career-flow {
+  --flow-surface: #FFFFFF;
+  --flow-muted: #66718D;
+  padding-top: 29px;
+  padding-bottom: 58px;
+}
+
+#career-flow > nav { margin: 0 auto 30px; }
+#flow-progress {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+#flow-progress li { position: relative; min-width: 0; flex: 1; text-align: center; }
+#flow-progress li:not(:last-child)::after {
+  position: absolute;
+  z-index: 0;
+  top: 15px;
+  left: calc(50% + 23px);
+  width: calc(100% - 46px);
+  border-top: 1px dashed #C9D0E2;
+  content: "";
+  pointer-events: none;
+}
+#flow-progress li:has(.is-complete)::after { border-top-color: #CEB53F; border-top-style: solid; }
+#flow-progress button {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 58px;
+  min-height: 59px;
+  border-radius: 8px;
+  padding: 0 5px;
+  background: transparent;
+  color: #65718D;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+#flow-progress button > span:first-child,
+#flow-progress .flow-step-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 31px;
+  height: 31px;
+  flex-shrink: 0;
+  border: 1px solid #D9DFED;
+  border-radius: 50%;
+  background: #F6F7FB;
+  color: #65718D;
+  font-size: 11px;
+  font-weight: 750;
+}
+#flow-progress button.is-current { color: var(--brand-blue); font-weight: 750; }
+#flow-progress button.is-current > span:first-child,
+#flow-progress button[aria-current="step"] > span:first-child {
+  border-color: var(--brand-yellow);
+  background: var(--brand-blue);
+  color: var(--brand-yellow);
+  box-shadow: 0 0 0 4px #FCD00F20;
+}
+#flow-progress button.is-complete { color: var(--brand-blue); }
+#flow-progress button.is-complete > span:first-child { border-color: #E3D179; background: #FFF6CB; color: var(--brand-blue); }
+#flow-progress button:disabled { opacity: 1; cursor: default; }
+#flow-progress button:not(:disabled):hover > span:first-child { border-color: #9CAACC; }
+#flow-progress button > span:first-child svg { width: 14px; height: 14px; }
+
+.flow-screen { min-width: 0; animation: flow-arrive 360ms cubic-bezier(.2,.7,.2,1); }
+.flow-heading { max-width: 720px; margin-bottom: 29px; }
+.flow-kicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  color: #65718D;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.6;
+  letter-spacing: 1.7px;
+  text-transform: uppercase;
+}
+.flow-kicker::before { width: 6px; height: 6px; flex-shrink: 0; border-radius: 50%; background: #D4B413; content: ""; }
+.flow-title, .flow-heading h1 {
+  margin: 0 0 13px;
+  color: var(--brand-blue);
+  font-size: clamp(32px, 3.8vw, 43px);
+  font-weight: 750;
+  line-height: 1.13;
+  letter-spacing: -1.5px;
+}
+.flow-title:focus { outline: 0; }
+.flow-intro { max-width: 570px; margin: 0; color: var(--flow-muted); font-size: 15px; line-height: 1.8; }
+.flow-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 13px; margin-top: 29px; }
+.flow-actions .button, .flow-primary, .flow-secondary {
+  min-height: 48px;
+  gap: 11px;
+  border-radius: 12px;
+  padding: 13px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.flow-primary { border: 1px solid var(--brand-yellow); background: var(--brand-yellow); color: var(--brand-blue); box-shadow: 0 5px 16px #FCD00F18; }
+.flow-primary:hover { border-color: #FFE16A; background: #FFDA36; color: var(--brand-blue); }
+.flow-primary svg, .flow-secondary svg { width: 17px; height: 17px; }
+.flow-secondary { border: 1px solid #D9DFEC; background: white; color: var(--brand-blue); }
+.flow-secondary:hover { border-color: #ABB8D6; background: #F8F9FD; }
+.flow-back { display: inline-flex; align-items: center; gap: 7px; min-height: 40px; margin: -5px 0 18px; border-radius: 7px; padding: 6px 0; background: transparent; color: #596685; font-size: 13px; font-weight: 650; }
+.flow-back:hover { color: var(--brand-blue); text-decoration: underline; text-underline-offset: 4px; }
+.flow-back svg { width: 16px; height: 16px; }
+.flow-data-note, .flow-caption { color: #65718D; font-size: 12px; line-height: 1.75; }
+.flow-data-note { max-width: 770px; margin: 22px 0 0; }
+
+.flow-welcome {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 1.08fr 1fr;
+  align-items: center;
+  gap: 34px;
+  min-height: 490px;
+  overflow: hidden;
+  border: 1px solid #344275;
+  border-radius: 29px;
+  padding: 48px 48px 45px;
+  background: radial-gradient(ellipse at 83% 55%, #FCD00F0D, transparent 45%), linear-gradient(130deg, #1E2859, #273565);
+  color: white;
+  box-shadow: 0 16px 40px #1720480C;
+}
+.flow-welcome::before { position: absolute; z-index: -1; top: -240px; right: -180px; width: 670px; height: 670px; border: 1px solid #FFFFFF06; border-radius: 50%; box-shadow: 0 0 0 65px #FFFFFF02, 0 0 0 130px #FFFFFF02; content: ""; pointer-events: none; }
+.flow-welcome-copy { position: relative; z-index: 2; min-width: 0; }
+.flow-welcome .flow-kicker { color: #CFD7F1; }
+.flow-welcome .flow-kicker::before { background: var(--brand-yellow); box-shadow: 0 0 0 4px #FCD00F14; }
+.flow-welcome .flow-title { max-width: 500px; color: white; font-size: clamp(40px, 4.6vw, 58px); line-height: 1.04; letter-spacing: -2.5px; }
+.flow-welcome .flow-title span { color: var(--brand-yellow); }
+.flow-welcome .flow-intro { max-width: 430px; margin-top: 21px; color: #D5DDF3; font-size: 15px; }
+.flow-welcome .flow-actions { margin-top: 29px; }
+.flow-welcome .flow-caption { margin: 16px 0 0; color: #ADBADD; font-size: 11px; }
+.flow-welcome .flow-secondary { border-color: #FFFFFF39; background: #FFFFFF08; color: #F0F3FF; }
+.flow-welcome .flow-secondary:hover { border-color: #FFFFFF66; background: #FFFFFF14; }
+.flow-welcome :focus-visible { outline-color: var(--brand-yellow); }
+.flow-welcome-scene { position: relative; isolation: isolate; min-width: 0; width: 100%; height: 340px; }
+.flow-welcome-scene::before { position: absolute; z-index: -1; top: 10px; right: -15px; width: 280px; height: 280px; border: 1px solid #FCD00F12; border-radius: 50%; background: radial-gradient(circle, #FCD00F15, transparent 66%); content: ""; }
+.flow-portrait { position: absolute; z-index: 1; bottom: 51px; width: 105px; height: 210px; }
+.flow-portrait::before { position: absolute; z-index: -1; right: -20%; bottom: -7px; left: -20%; height: 14px; border: 1px solid #FFFFFF14; border-radius: 50%; background: #FFFFFF05; content: ""; }
+.flow-portrait > .character-sprite { width: 100%; height: 100%; filter: drop-shadow(0 7px 8px #09123655); }
+.flow-portrait-start { left: 9px; bottom: 40px; }
+.flow-portrait-future { right: 8px; bottom: 78px; width: 127px; height: 254px; }
+.flow-portrait-future::before { border-color: #FCD00F39; background: #FCD00F0C; }
+.flow-scene-label { position: absolute; bottom: -40px; left: 50%; width: 165px; transform: translateX(-50%); color: #CFD8F4; font-size: 10px; font-weight: 650; line-height: 1.5; letter-spacing: 1px; text-align: center; text-transform: uppercase; }
+.flow-portrait-future .flow-scene-label { color: var(--brand-yellow); }
+.flow-scene-label small { display: block; margin-top: 3px; color: #98A7CF; font-size: 10px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+.flow-scene-path { position: absolute; z-index: 0; top: 211px; right: 68px; left: 52px; height: 70px; transform: rotate(-15deg); border-bottom: 2px dashed #FCD00F55; border-radius: 0 0 50% 50%; }
+.flow-scene-path::before, .flow-scene-path::after { position: absolute; bottom: -5px; width: 8px; height: 8px; border: 2px solid #273565; border-radius: 50%; background: var(--brand-yellow); content: ""; }
+.flow-scene-path::before { left: 0; }
+.flow-scene-path::after { right: 0; }
+.flow-scene-path { display: flex; align-items: flex-end; justify-content: space-evenly; }
+.flow-scene-path > span { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; transform: translateY(12px) rotate(15deg); border: 1px solid #FCD00F50; border-radius: 50%; background: #253263; color: #F5DA62; font-size: 7px; font-weight: 750; letter-spacing: .5px; }
+.flow-welcome-foot { display: flex; flex-wrap: wrap; grid-column: 1 / -1; align-items: center; gap: 18px 30px; margin-top: 3px; border-top: 1px solid #FFFFFF13; padding-top: 20px; color: #AFBDDF; font-size: 10px; line-height: 1.6; }
+.flow-welcome-foot > span { display: inline-flex; align-items: center; gap: 7px; }
+.flow-welcome-foot svg { width: 14px; height: 14px; color: #E4CE68; }
+.flow-scene-label strong { display: block; font-size: 11px; font-weight: 650; letter-spacing: 0; text-transform: none; }
+.flow-scene-label small { margin: 0 0 3px; font-size: 8px; font-weight: 650; letter-spacing: 1px; text-transform: uppercase; }
+
+.flow-field-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+.flow-field-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 272px;
+  border: 1px solid #DFE4EF;
+  border-radius: 21px;
+  padding: 28px;
+  background: white;
+  color: var(--brand-blue);
+  text-align: left;
+  box-shadow: 0 4px 16px #1E285903;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+.flow-field-card:hover { transform: translateY(-4px); border-color: #B4C0DF; box-shadow: 0 12px 26px #1E28590B; }
+.flow-field-top { display: flex; align-items: flex-start; justify-content: space-between; width: 100%; }
+.flow-field-icon { display: inline-flex; align-items: center; justify-content: center; width: 53px; height: 53px; flex-shrink: 0; margin-bottom: 26px; border: 1px solid #F5E5A1; border-radius: 16px; background: #FFF6D4; color: var(--brand-blue); }
+.flow-field-icon svg { width: 26px; height: 26px; stroke-width: 1.65; }
+.flow-field-number { position: absolute; top: 29px; right: 27px; color: #69758F; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; }
+.flow-field-copy { display: flex; align-items: flex-start; flex: 1; flex-direction: column; gap: 11px; min-width: 0; }
+.flow-field-copy strong, .flow-field-copy h2 { margin: 0; font-size: 25px; font-weight: 750; line-height: 1.25; letter-spacing: -.6px; }
+.flow-field-copy p { margin: 0; color: var(--flow-muted); font-size: 14px; font-weight: 400; line-height: 1.7; }
+.flow-field-copy > span { display: block; margin: 0; color: var(--flow-muted); font-size: 14px; font-weight: 400; line-height: 1.7; }
+.flow-field-copy small { display: block; margin-top: auto; padding-top: 13px; color: #69758F; font-size: 11px; font-weight: 550; line-height: 1.5; }
+.flow-field-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin-top: 24px; color: #687591; font-size: 11px; font-weight: 550; line-height: 1.5; }
+.flow-field-footer svg { width: 17px; height: 17px; }
+.flow-field-card > svg { position: absolute; right: 25px; bottom: 27px; width: 18px; height: 18px; color: #7C89A9; }
+
+.flow-career-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 21px; }
+.flow-career-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; margin: -4px 0 22px; }
+.flow-search-label { display: flex; align-items: flex-start; flex-direction: column; gap: 8px; width: min(360px, 100%); color: #5C6988; font-size: 11px; font-weight: 650; line-height: 1.5; }
+.flow-search-wrap { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 46px; border: 1px solid #DCE2EF; border-radius: 11px; padding: 0 13px; background: white; color: #7C8AA9; }
+.flow-search-wrap:focus-within { border-color: #8D9CC4; outline: 3px solid #DCE2F3; outline-offset: 2px; }
+.flow-search-wrap > svg { width: 17px; height: 17px; }
+.flow-search-wrap > input { width: 100%; min-width: 0; border: 0; outline: 0; padding: 12px 0; background: transparent; color: var(--brand-blue); font-size: 13px; }
+.flow-search-wrap > input::placeholder { color: #69758F; opacity: 1; }
+.flow-career-toolbar .flow-caption { flex-shrink: 0; padding-bottom: 4px; }
+.flow-search-empty { grid-column: 1 / -1; border: 1px dashed #CDD5E7; border-radius: 16px; margin: 0; padding: 30px; color: #65718D; font-size: 14px; line-height: 1.7; }
+.flow-career-card { display: flex; align-items: stretch; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid #DFE4EF; border-radius: 20px; padding: 0; background: white; color: var(--brand-blue); text-align: left; box-shadow: 0 4px 16px #1E285904; transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
+.flow-career-card:hover { transform: translateY(-4px); border-color: #B1BDD9; box-shadow: 0 12px 26px #1E28590B; }
+.flow-career-portrait { position: relative; isolation: isolate; display: flex; align-items: flex-end; justify-content: center; height: 176px; overflow: hidden; background: radial-gradient(ellipse at 50% 80%, #FCD00F15, transparent 59%), #1E2859; }
+.flow-career-portrait::before { position: absolute; z-index: -1; top: 27px; width: 176px; height: 176px; border: 1px solid #FFFFFF0F; border-radius: 50%; box-shadow: 0 0 0 28px #FFFFFF02; content: ""; }
+.flow-career-portrait > .character-sprite { position: relative; width: 84px; height: 168px; margin-bottom: -2px; filter: drop-shadow(0 6px 6px #09113644); }
+.flow-career-info { position: relative; display: flex; align-items: flex-start; flex: 1; flex-direction: column; gap: 11px; min-width: 0; padding: 22px; }
+.flow-stage { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #E2E6F2; border-radius: 99px; padding: 4px 8px; background: #F5F7FC; color: #5D6B88; font-size: 9px; font-weight: 750; line-height: 1.5; letter-spacing: .65px; text-transform: uppercase; }
+.flow-career-info h2, .flow-career-info h3, .flow-career-info > strong { display: block; margin: 0; font-size: 18px; font-weight: 750; line-height: 1.4; letter-spacing: -.35px; }
+.flow-career-info p { margin: 0; color: var(--flow-muted); font-size: 13px; font-weight: 400; line-height: 1.75; }
+.flow-career-info > small { margin-top: auto; padding-top: 4px; color: #64718F; font-size: 11px; line-height: 1.6; }
+.flow-career-info > svg { align-self: flex-end; width: 17px; height: 17px; margin-top: auto; color: #64718F; }
+.flow-career-sector { display: block; color: #64718F; font-size: 10px; font-weight: 500; line-height: 1.6; }
+.flow-career-link { display: flex; align-items: center; gap: 7px; width: 100%; margin-top: auto; border-top: 1px solid #EEF0F7; padding-top: 15px; color: #344474; font-size: 11px; font-weight: 650; line-height: 1.5; }
+.flow-career-link svg { width: 14px; height: 14px; margin-left: auto; }
+.flow-empty { position: relative; max-width: 790px; border: 1px solid #DEE4F0; border-radius: 23px; padding: 38px; background: radial-gradient(ellipse at 100% 0, #FFF9E7, transparent 48%), white; box-shadow: 0 5px 20px #1E285903; }
+.flow-empty > svg { width: 34px; height: 34px; margin-bottom: 13px; color: #9B8430; }
+.flow-empty-icon { display: inline-flex; align-items: center; justify-content: center; width: 49px; height: 49px; margin-bottom: 20px; border: 1px solid #EFDF9B; border-radius: 14px; background: #FFF4C9; color: #7D6825; }
+.flow-empty-icon svg { width: 25px; height: 25px; }
+.flow-empty h2 { max-width: 570px; margin: 0 0 12px; font-size: 25px; line-height: 1.35; letter-spacing: -.6px; }
+.flow-empty p { max-width: 630px; margin: 0; color: var(--flow-muted); font-size: 14px; line-height: 1.85; }
+
+.flow-profile { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.15fr); align-items: center; gap: 55px; }
+.flow-profile-scene { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: center; flex-direction: column; min-height: 418px; overflow: hidden; border: 1px solid #354174; border-radius: 26px; padding: 32px 25px 25px; background: radial-gradient(ellipse at 50% 55%, #FCD00F17, transparent 59%), linear-gradient(150deg, #1E2859, #293767); }
+.flow-profile-scene::before { position: absolute; z-index: -1; top: 66px; width: 270px; height: 270px; border: 1px solid #FFFFFF0D; border-radius: 50%; box-shadow: 0 0 0 30px #FFFFFF02, 0 0 0 70px #FFFFFF01; content: ""; }
+.flow-profile-character { position: relative; width: 140px; height: 280px; margin: auto 0 19px; }
+.flow-profile-character::after { position: absolute; z-index: -1; right: -15px; bottom: -5px; left: -15px; height: 19px; border: 1px solid #FCD00F26; border-radius: 50%; background: #FCD00F08; content: ""; }
+.flow-profile-character > .character-sprite { width: 100%; height: 100%; filter: drop-shadow(0 9px 9px #07113655); }
+.flow-profile-scene .flow-caption { max-width: 280px; margin: 9px 0 0; color: #B7C4E7; font-size: 11px; line-height: 1.75; text-align: center; }
+.flow-profile-scene .flow-kicker { color: var(--brand-yellow); }
+.flow-profile-copy { min-width: 0; padding-block: 8px; }
+.flow-profile-copy h1, .flow-profile-copy h2 { margin: 0 0 16px; color: var(--brand-blue); font-size: clamp(29px, 3vw, 38px); font-weight: 750; line-height: 1.18; letter-spacing: -1.1px; }
+.flow-profile-copy > p { margin: 0 0 18px; color: var(--flow-muted); font-size: 15px; line-height: 1.85; }
+.flow-profile-copy .flow-kicker { margin-bottom: 10px; }
+.flow-profile-skills { margin-top: 24px; }
+.flow-profile-skills h2 { margin: 0; font-size: 12px; font-weight: 700; line-height: 1.5; letter-spacing: 0; }
+.flow-profile-next { display: flex; align-items: flex-start; gap: 12px; margin-top: 24px; border: 1px solid #E0E5F1; border-radius: 13px; padding: 17px; background: #FFFFFFB0; }
+.flow-profile-next > span { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 9px; background: #FFF4C9; color: #8E7628; }
+.flow-profile-next > span svg { width: 17px; height: 17px; }
+.flow-profile-next > div { min-width: 0; }
+.flow-profile-next strong { display: block; color: #3A4A74; font-size: 12px; font-weight: 700; line-height: 1.5; }
+.flow-profile-next p { margin: 5px 0 0; color: #6A7693; font-size: 12px; line-height: 1.75; }
+.flow-profile-badges, .flow-skill-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 0; list-style: none; }
+.flow-profile-badges { margin: 0 0 20px; }
+.flow-profile-badges > span, .flow-profile-badges > li { border: 1px solid #DDE3F1; border-radius: 99px; padding: 5px 10px; background: white; color: #5D6B8A; font-size: 11px; font-weight: 600; line-height: 1.6; }
+.flow-skill-tags { margin: 11px 0 0; }
+.flow-skill-tags > span, .flow-skill-tags > li { border: 1px solid #E5E8F1; border-radius: 7px; padding: 6px 9px; background: #EFF2F9; color: #506181; font-size: 11px; line-height: 1.6; }
+.flow-profile-copy .flow-data-note { margin-top: 20px; font-size: 11px; }
+.flow-profile-copy .flow-actions { margin-top: 25px; }
+.journey-return-bar { display: flex; align-items: center; min-height: 42px; padding-block: 8px; }
+.journey-return-bar .text-button { min-height: 30px; font-size: 12px; }
+
+@keyframes flow-arrive { from { opacity: .45; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+html.motion-paused .flow-screen { animation: none; }
+html.motion-paused .flow-field-card, html.motion-paused .flow-career-card { transition: none; }
+html.motion-paused .flow-field-card:hover, html.motion-paused .flow-career-card:hover { transform: none; }
+
+@media (max-width: 960px) {
+  .flow-welcome { grid-template-columns: 1.1fr .9fr; gap: 20px; padding: 38px 34px; }
+  .flow-welcome .flow-title { font-size: 46px; letter-spacing: -1.9px; }
+  .flow-welcome-scene { height: 320px; }
+  .flow-portrait-start { left: 0; width: 88px; height: 176px; }
+  .flow-portrait-future { right: 0; width: 112px; height: 224px; }
+  .flow-scene-path { left: 45px; right: 55px; }
+  .flow-field-grid { gap: 15px; }
+  .flow-field-card { min-height: 275px; padding: 24px; }
+  .flow-field-number { top: 26px; right: 23px; }
+  .flow-career-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .flow-profile { gap: 32px; }
+}
+@media (max-width: 700px) {
+  #career-flow { padding-top: 25px; padding-bottom: 40px; }
+  #career-flow > nav { margin-bottom: 23px; }
+  #flow-progress button { min-width: 48px; gap: 7px; font-size: 10px; }
+  #flow-progress li:not(:last-child)::after { left: calc(50% + 20px); width: calc(100% - 40px); }
+  .flow-welcome { grid-template-columns: 1fr; gap: 22px; min-height: 0; border-radius: 24px; padding: 33px 29px 26px; }
+  .flow-welcome .flow-title { max-width: 450px; font-size: clamp(37px, 7vw, 47px); letter-spacing: -1.8px; }
+  .flow-welcome .flow-intro { max-width: 510px; margin-top: 17px; font-size: 14px; }
+  .flow-welcome .flow-actions { margin-top: 23px; }
+  .flow-welcome-foot { gap: 10px; margin-top: 2px; padding-top: 17px; font-size: 9px; }
+  .flow-welcome-scene { width: min(350px, 100%); height: 267px; margin: 0 auto; }
+  .flow-welcome-scene::before { top: -12px; right: -7px; width: 240px; height: 240px; }
+  .flow-portrait-start { bottom: 34px; left: 17px; width: 80px; height: 160px; }
+  .flow-portrait-future { right: 15px; bottom: 62px; width: 102px; height: 204px; }
+  .flow-scene-path { top: 157px; left: 54px; right: 63px; height: 64px; }
+  .flow-scene-label { bottom: -33px; font-size: 9px; }
+  .flow-scene-label small { font-size: 9px; }
+  .flow-heading { margin-bottom: 23px; }
+  .flow-title, .flow-heading h1 { font-size: 32px; letter-spacing: -1px; }
+  .flow-intro { font-size: 14px; }
+  .flow-field-grid { grid-template-columns: 1fr; gap: 13px; }
+  .flow-field-card { display: grid; grid-template-columns: 49px minmax(0, 1fr); align-items: start; column-gap: 18px; min-height: 0; border-radius: 17px; padding: 23px; }
+  .flow-field-icon { width: 49px; height: 49px; margin-bottom: 0; border-radius: 14px; }
+  .flow-field-icon svg { width: 24px; height: 24px; }
+  .flow-field-number { display: none; }
+  .flow-field-copy { padding-right: 10px; }
+  .flow-field-copy strong, .flow-field-copy h2 { font-size: 22px; }
+  .flow-field-copy p { font-size: 13px; }
+  .flow-field-copy > span { font-size: 13px; }
+  .flow-field-copy small { padding-top: 5px; font-size: 10px; }
+  .flow-field-footer { grid-column: 2; margin-top: 0; font-size: 10px; }
+  .flow-field-footer svg { width: 15px; height: 15px; }
+  .flow-field-card > svg { right: 19px; bottom: 24px; width: 16px; height: 16px; }
+  .flow-career-grid { gap: 14px; }
+  .flow-career-info { gap: 9px; padding: 18px; }
+  .flow-career-info h2, .flow-career-info h3, .flow-career-info > strong { font-size: 16px; }
+  .flow-career-info p { font-size: 12px; }
+  .flow-profile { grid-template-columns: 1fr; gap: 25px; }
+  .flow-profile-scene { min-height: 350px; border-radius: 22px; padding: 25px; }
+  .flow-profile-character { width: 115px; height: 230px; margin: 5px 0 16px; }
+  .flow-profile-scene::before { top: 32px; width: 240px; height: 240px; }
+  .flow-profile-copy { padding: 0 2px; }
+  .flow-profile-copy h1, .flow-profile-copy h2 { font-size: 31px; }
+  .flow-profile-copy > p { font-size: 14px; }
+  .flow-profile-skills h2 { font-size: 12px; }
+  .flow-empty { border-radius: 19px; padding: 28px; }
+  .flow-empty h2 { font-size: 23px; }
+  .flow-empty p { font-size: 13px; }
+  .flow-data-note { margin-top: 18px; font-size: 11px; }
+}
+@media (max-width: 440px) {
+  #flow-progress button { min-width: 0; gap: 7px; width: 100%; padding-inline: 2px; font-size: 9px; }
+  #flow-progress button > span:first-child { width: 28px; height: 28px; font-size: 10px; }
+  #flow-progress li:not(:last-child)::after { top: 14px; left: calc(50% + 19px); width: calc(100% - 38px); }
+  .flow-kicker { font-size: 9px; letter-spacing: 1.5px; }
+  .flow-welcome { gap: 16px; border-radius: 21px; padding: 28px 23px 24px; }
+  .flow-welcome .flow-title { font-size: 39px; }
+  .flow-welcome .flow-intro { font-size: 13px; }
+  .flow-welcome .flow-caption { font-size: 10px; }
+  .flow-welcome-scene { height: 243px; }
+  .flow-portrait-start { left: 6px; width: 72px; height: 144px; }
+  .flow-portrait-future { right: 4px; bottom: 59px; width: 93px; height: 186px; }
+  .flow-scene-path { top: 145px; left: 41px; right: 48px; height: 57px; }
+  .flow-scene-label { width: 132px; font-size: 8px; }
+  .flow-title, .flow-heading h1 { font-size: 30px; }
+  .flow-actions .button, .flow-primary, .flow-secondary { min-height: 47px; padding: 12px 18px; font-size: 13px; }
+  .flow-career-grid { grid-template-columns: 1fr; }
+  .flow-career-toolbar { align-items: flex-start; flex-direction: column; gap: 9px; }
+  .flow-search-label { width: 100%; }
+  .flow-career-toolbar .flow-caption { padding: 0; font-size: 10px; }
+  .flow-career-card { display: grid; grid-template-columns: 102px minmax(0, 1fr); border-radius: 17px; }
+  .flow-career-portrait { height: 100%; min-height: 177px; align-items: center; }
+  .flow-career-portrait > .character-sprite { width: 75px; height: 150px; margin: 0; }
+  .flow-career-info { padding: 18px 16px; }
+  .flow-career-info h2, .flow-career-info h3, .flow-career-info > strong { font-size: 15px; line-height: 1.45; }
+  .flow-stage { padding: 3px 6px; font-size: 8px; }
+  .flow-career-info p { font-size: 12px; line-height: 1.65; }
+  .flow-field-card { grid-template-columns: 43px minmax(0, 1fr); gap: 15px; padding: 21px 18px; }
+  .flow-field-icon { width: 43px; height: 43px; border-radius: 12px; }
+  .flow-field-copy strong, .flow-field-copy h2 { font-size: 21px; }
+  .flow-profile-copy h1, .flow-profile-copy h2 { font-size: 29px; }
+  .flow-profile-skills h2 { font-size: 12px; }
+  .flow-empty { padding: 25px; }
+  .flow-empty .flow-actions { align-items: stretch; flex-direction: column; gap: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-screen { animation: none; }
+  .flow-field-card, .flow-career-card { transition: none; }
+  .flow-field-card:hover, .flow-career-card:hover { transform: none; }
+}

@@ -59,12 +59,31 @@ try {
   async function waitFor(expression, description = expression, timeout = 5000) {
     const deadline = Date.now() + timeout;
     do { if (await evaluate(expression)) return; await sleep(40); } while (Date.now() < deadline);
-    throw new Error(`Timed out waiting for ${description}`);
+    const state = await evaluate('({ query: location.search, focus: document.activeElement?.id || document.activeElement?.dataset.flowAction || document.activeElement?.tagName, heading: document.querySelector("#flow-title")?.textContent, hidden: document.querySelector("#career-flow")?.hidden, errors: document.querySelector("#flow-content")?.textContent.includes("could not be loaded") })');
+    throw new Error(`Timed out waiting for ${description}: ${JSON.stringify(state)}`);
   }
   async function frames() { await evaluate('new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))'); }
   async function click(selector) {
     assert(await evaluate(`!!document.querySelector(${JSON.stringify(selector)})`), `Missing ${selector}`);
     await evaluate(`document.querySelector(${JSON.stringify(selector)}).click()`); await frames();
+  }
+  async function key(key, code = key) {
+    const windowsVirtualKeyCode = { Enter: 13, ' ': 32, Tab: 9, Home: 36, End: 35, ArrowLeft: 37, ArrowRight: 39 }[key];
+    await call('Input.dispatchKeyEvent', { type: 'keyDown', key, code, windowsVirtualKeyCode, ...(key === 'Enter' ? { text: '\r', unmodifiedText: '\r' } : {}) });
+    await call('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode }); await frames();
+  }
+  async function waitFlow(screen, focused = false) {
+    await waitFor(`document.querySelector('#career-flow')?.getClientRects().length > 0 && document.querySelector('#flow-title') && (new URL(location.href).searchParams.get('screen') || 'welcome') === ${JSON.stringify(screen)}`, `the ${screen} career-selection screen`);
+    assert(await evaluate('document.querySelector("#career-experience").hidden'), `The pathway is visible before the ${screen} step is confirmed`);
+    if (focused) await waitFor('document.activeElement === document.querySelector("#flow-title")', `the ${screen} screen title to receive focus`);
+  }
+  async function waitJourney(goal) {
+    await waitFor(`document.querySelector('#career-experience')?.getClientRects().length > 0 && document.querySelector('#goal-select')?.value === ${JSON.stringify(goal)} && document.querySelectorAll('.pathway-card').length > 0`, `the visible ${goal} career journey`);
+    assert(await evaluate('document.querySelector("#career-flow").hidden'), 'Career selection remains visible after starting the journey');
+  }
+  async function historyStep(delta, screen, goal) {
+    await evaluate(`history.go(${delta})`);
+    if (screen === 'journey') await waitJourney(goal); else await waitFlow(screen, true);
   }
   async function setValue(selector, value, event = 'change') {
     await evaluate(`(() => { const input = document.querySelector(${JSON.stringify(selector)}); input.value = ${JSON.stringify(value)}; input.dispatchEvent(new Event(${JSON.stringify(event)}, { bubbles: true })); })()`); await frames();
@@ -91,15 +110,73 @@ try {
   }
   async function navigate(query = '') {
     await load('Page.navigate', { url: new URL(query, baseUrl).href });
-    await waitFor('document.querySelector(".profile-panel") && document.querySelector("#goal-select") && document.querySelectorAll(".pathway-card").length > 0', 'the pathway page to load'); await frames();
+    await waitFor('document.querySelector("#career-flow #flow-title") || (!document.querySelector("#career-experience")?.hidden && document.querySelectorAll(".pathway-card").length > 0)', 'the career guide to load'); await frames();
   }
 
   await call('Page.enable'); await call('Runtime.enable');
   await call('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
   await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1000, deviceScaleFactor: 1, mobile: false });
   await navigate(); await evaluate('localStorage.clear()'); await load('Page.reload');
+  await waitFlow('welcome');
+  assert.equal(await evaluate('document.querySelector("#flow-title").innerText.replace(/\\s+/g, " ").trim()'), 'What do you want to be?');
+  assert.equal(await evaluate('document.querySelector("#flow-progress").children.length'), 5, 'The guide should communicate its five selection steps');
+  assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'The desktop welcome screen overflows');
+  await screenshot('desktop-welcome.png', true);
+  await evaluate('document.querySelector("[data-flow-action=start]").focus()'); await key('Enter');
+  await waitFlow('fields', true);
+  assert.equal(await evaluate('document.querySelectorAll("#flow-content [data-flow-field]").length'), 3, 'Students should be offered IT, Creative and Business');
+  assert(await evaluate('document.querySelector("#flow-progress [data-flow-screen=journey]").disabled'), 'Future progress steps must not bypass career confirmation');
+  await evaluate('document.querySelector("[data-flow-field=it]").focus()'); await key('Enter');
+  await waitFlow('careers', true);
+  assert.equal(await evaluate('document.querySelectorAll("#flow-content [data-flow-career]").length'), 6, 'IT should contain the six published career examples');
+  await screenshot('desktop-careers.png', true);
+  await evaluate('document.querySelector("#flow-search").focus()'); await setValue('#flow-search', 'Security Planning', 'input');
+  assert.equal(await evaluate('document.querySelectorAll("#flow-content [data-flow-career]").length'), 1, 'Career search should include published skill names');
+  assert.equal(await evaluate('document.activeElement.id'), 'flow-search', 'Searching careers replaced the focused search field');
+  await setValue('#flow-search', '', 'input');
+  assert.equal(await evaluate('document.querySelectorAll("#flow-content [data-flow-career]").length'), 6);
+  assert.equal(await evaluate('new URL(location.href).searchParams.get("field")'), 'it');
+  await click('[data-flow-career="associate-security-analyst"]'); await waitFlow('profile', true);
+  assert.match(await evaluate('document.querySelector("#flow-content").textContent'), /Associate Security Analyst/);
+  assert(await evaluate('!!document.querySelector("#flow-content .character-sprite")'), 'The career profile is missing its illustrated character');
+  await screenshot('desktop-profile.png', true);
+  assert.match(await evaluate('document.querySelector("[data-flow-action=ready]").textContent'), /I.m Ready/i);
+  assert(await evaluate('document.querySelector("#flow-progress [data-flow-screen=journey]").disabled'), 'The profile should require the I’m Ready action before starting a journey');
+  await click('#flow-progress [data-flow-screen=journey]'); await waitFlow('profile');
+  await click('[data-flow-action=ready]'); await waitJourney('associate-security-analyst');
+  assert.equal(await evaluate('document.querySelectorAll(".pathway-card").length'), 1, 'Confirming the associate career did not start its pathway');
+  assert.match(await evaluate('document.querySelector("#future-title").textContent'), /Associate Security Analyst/);
+  await click('.card-open[data-detail="associate-security-analyst"]');
+  assert(await evaluate('document.querySelector("#detail-dialog").open'), 'The first career journey did not open role details');
+  await historyStep(-1, 'profile');
+  assert(!await evaluate('document.querySelector("#detail-dialog").open'), 'Browser Back left a journey modal blocking career selection');
+  await historyStep(1, 'journey', 'associate-security-analyst');
+  for (const screen of ['profile', 'careers', 'fields', 'welcome']) await historyStep(-1, screen);
+  for (const screen of ['fields', 'careers', 'profile', 'journey']) await historyStep(1, screen, 'associate-security-analyst');
+  await click('[data-qualification="hnd"]'); await setValue('#experience-slider', '4', 'input');
+  assert.equal(await evaluate('new URL(location.href).searchParams.get("screen")'), 'journey', 'Updating a profile lost the current flow screen');
+  await click('#change-career'); await waitFlow('profile', true);
+  assert.equal(await evaluate('new URL(location.href).searchParams.get("career")'), 'associate-security-analyst', 'Change career did not return to the selected career profile');
+  await click('[data-flow-action=ready]'); await waitJourney('associate-security-analyst');
+  assert.equal(await evaluate('document.querySelector(".qualification-pill[aria-pressed=true]").dataset.qualification'), 'hnd', 'Reconfirming a career lost the chosen qualification');
+  assert.equal(await evaluate('document.querySelector("#experience-slider").value'), '4', 'Reconfirming a career lost the experience value');
+  await click('#change-career'); await waitFlow('profile', true); await click('[data-flow-screen=fields]'); await waitFlow('fields', true);
+  for (const field of ['creative', 'business']) {
+    await click(`[data-flow-field="${field}"]`); await waitFlow('careers', true);
+    assert.equal(await evaluate('document.querySelectorAll("#flow-content [data-flow-career]").length'), 0, `${field} invented unpublished career examples`);
+    assert.match(await evaluate('document.querySelector("#flow-content").textContent'), /not (?:yet )?published|not available|no (?:published )?careers|coming soon/i, `${field} does not explain its unavailable data`);
+    await click('[data-flow-action=fields]'); await waitFlow('fields', true);
+  }
+  await click('[data-flow-field=creative]'); await waitFlow('careers', true);
+  await click('[data-flow-action=explore-it]'); await waitFlow('careers', true);
+  assert.equal(await evaluate('new URL(location.href).searchParams.get("field")'), 'it', 'The empty-state recovery did not open IT careers');
+  await click('[data-flow-career=ciso]'); await waitFlow('profile', true);
+  assert.match(await evaluate('document.querySelector("#flow-content").textContent'), /Chief Information Security Officer/);
+  await click('[data-flow-action=ready]'); await waitJourney('ciso');
+  assert.equal(await evaluate('document.querySelectorAll(".pathway-card").length'), 5, 'Selecting a different career did not replace the pathway goal');
+  await click('[data-qualification="olevel"]'); await setValue('#experience-slider', '0', 'input');
   await waitFor('document.querySelectorAll(".pathway-card").length === 5', 'the default five-role security pathway');
-  assert.equal(await evaluate('document.querySelector("h1").textContent.replace(/\\s+/g, "")'), 'Yourfuture.Onelevelatatime.');
+  assert.equal(await evaluate('document.querySelector("#page-title").textContent.replace(/\\s+/g, "")'), 'Yourfuture.Onelevelatatime.');
   assert(await evaluate('!!document.querySelector(".brandbar") && !!document.querySelector(".study-card")'), 'Default layout is missing its brand bar or study preparation');
   assert.equal(await evaluate('document.querySelector(".qualification-pill[aria-pressed=true]").dataset.qualification'), 'olevel');
   assert.equal(await evaluate('document.querySelector("#goal-select").value'), 'ciso');
@@ -180,7 +257,19 @@ try {
   assert(/(?:6|six)\s+(?:complete\s+)?(?:role|career)/i.test(about), 'Data provenance does not disclose six role examples');
   assert(/(?:3|three)\s+(?:complete\s+)?course/i.test(about), 'Data provenance does not disclose three course examples'); await closeDialog();
 
+  await navigate(); await waitFlow('welcome');
+  assert.equal(await evaluate('document.querySelector("#flow-title").innerText.replace(/\\s+/g, " ").trim()'), 'What do you want to be?', 'A remembered qualification should not skip the welcome screen');
+  await navigate('?screen=profile&field=business&career=ciso'); await waitFlow('careers');
+  assert.equal(await evaluate('new URL(location.href).searchParams.get("field")'), 'business', 'An invalid career/field combination did not retain the valid field');
+  assert.equal(await evaluate('document.querySelectorAll("#flow-content [data-flow-career]").length'), 0, 'A mismatched career leaked into the Business list');
+  await navigate('?screen=profile&field=invalid&career=ciso'); await waitFlow('fields');
+  await navigate('?screen=invalid&field=it&career=ciso'); await waitFlow('welcome');
+  await navigate('?screen=profile&field=it&career=data-architect'); await waitFlow('profile');
+  assert.match(await evaluate('document.querySelector("#flow-content").textContent'), /not (?:yet )?published|not available|coming soon|unavailable|requirements are still pending/i, 'The Data Architect profile should disclose unpublished requirements');
+  await navigate('?screen=journey&field=it&career=ciso&from=olevel&exp=0'); await waitJourney('ciso');
+  assert.equal(await evaluate('document.querySelectorAll(".pathway-card").length'), 5, 'An explicit journey deep link failed to restore its career');
   await navigate('?sector=ict-security&from=hnd&exp=4&goal=ciso');
+  await waitJourney('ciso');
   assert.equal(await evaluate('document.querySelector(".qualification-pill[aria-pressed=true]").dataset.qualification'), 'hnd');
   assert.equal(await evaluate('document.querySelector("#experience-slider").value'), '4');
   assert.equal(await evaluate('document.querySelectorAll(".pathway-card .status-ready").length'), 3);
@@ -199,7 +288,20 @@ try {
 
   await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
   await call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+  await navigate(); await waitFlow('welcome');
+  assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Mobile welcome has horizontal overflow');
+  await screenshot('mobile-welcome.png', true);
+  await click('[data-flow-action=start]'); await waitFlow('fields', true);
+  assert(await evaluate('[...document.querySelectorAll("#flow-content [data-flow-field]")].every(element => { const r = element.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; })'), 'Mobile field-selection buttons are clipped');
+  await screenshot('mobile-fields.png', true);
+  await click('[data-flow-field=it]'); await waitFlow('careers', true);
+  assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Mobile career list has horizontal overflow');
+  await click('[data-flow-career=ciso]'); await waitFlow('profile', true);
+  assert(await evaluate('document.documentElement.scrollWidth <= innerWidth && document.querySelector("[data-flow-action=ready]").getBoundingClientRect().right <= innerWidth'), 'Mobile career profile or confirmation action is clipped');
+  await screenshot('mobile-profile.png', true);
+  await click('[data-flow-action=ready]'); await waitJourney('ciso');
   await navigate('?sector=ict-security&from=olevel&exp=0&goal=ciso'); await frames();
+  await waitJourney('ciso');
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Mobile document has horizontal overflow');
   assert(await evaluate('[...document.querySelectorAll(".qualification-pill, #experience-slider, #goal-select, #more-sectors")].every(element => { const r = element.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; })'), 'Mobile profile controls are clipped');
   await screenshot('mobile.png', true); await checkHorizontalScroll('#evolution-track'); await checkHorizontalScroll();
@@ -208,7 +310,7 @@ try {
   assert(await evaluate('(() => { const dialog = document.querySelector("#detail-dialog"); const r = dialog.getBoundingClientRect(); return dialog.open && r.left >= 0 && r.right <= innerWidth && r.height <= innerHeight; })()'), 'Mobile role details do not fit');
   await screenshot('mobile-detail.png'); await escape();
   assert.deepEqual(errors, [], 'Uncaught browser errors');
-  console.log('PASS: six-stage illustrated evolution, decoded character artwork, stage/keyboard navigation, stable focused controls, profile/readiness, pathway statuses, sectors, goals, details, saved persistence, courses, provenance, deep links/popstate, sharing and mobile track scrolling/layout.');
-  console.log('Screenshots saved in artifacts/desktop.png, artifacts/mobile.png and artifacts/mobile-detail.png.');
+  console.log('PASS: five-step career selection, keyboard entry/focus, browser Back/Forward, truthful field lists, illustrated profiles, confirmation/change-career, guarded/deep links, six-stage evolution, readiness, saved careers, details, courses, sharing, motion-safe mobile selection and pathway layouts.');
+  console.log('Screenshots saved in artifacts/desktop-welcome.png, artifacts/desktop-careers.png, artifacts/desktop-profile.png, artifacts/mobile-welcome.png, artifacts/mobile-fields.png, artifacts/mobile-profile.png, artifacts/desktop.png, artifacts/mobile.png and artifacts/mobile-detail.png.');
   await call('Browser.close');
 } finally { if (ws?.readyState === WebSocket.OPEN) ws.close(); chrome.kill(); }

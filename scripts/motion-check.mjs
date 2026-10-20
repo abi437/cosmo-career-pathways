@@ -173,7 +173,28 @@ try {
   await click('.card-open[data-detail="associate-security-analyst"]');
   await waitFor('!document.querySelector("#detail-dialog").getAnimations({ subtree: true }).some(animation => animation.playState === "running" || animation.pending)', 'mobile modal entrance to finish');
   assert(await evaluate('(() => { const r = document.querySelector("#detail-dialog").getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth && r.height <= innerHeight; })()'), 'Animated mobile details do not fit');
-  await escape(); await settle(); assert.deepEqual(errors, [], 'Uncaught browser errors during motion checks');
-  console.log('PASS: finite pathway entrances, visible settled content, slider focus, journey play/pause progression, immediate playback stop with manual/system motion controls, manual stage exploration, modal animation/Escape, pause/resume persistence and mobile motion layout.');
+  await escape(); await settle();
+
+  await load('Page.navigate', { url: baseUrl });
+  await waitFor('document.querySelector("#flow-title") && !document.querySelector("#career-flow").hidden && document.querySelector("#career-experience").hidden', 'the mobile career-selection welcome screen');
+  assert(await evaluate(`${active}.every(animation => animation.effect.getComputedTiming().iterations !== Infinity)`), 'Career selection has an infinite animation');
+  await waitFor(`${active}.length === 0`, 'finite career-selection entrances to finish');
+  assert(await evaluate('getComputedStyle(document.querySelector("#flow-content")).opacity === "1" && document.documentElement.scrollWidth <= innerWidth'), 'Motion leaves the mobile career-selection content hidden or overflowing');
+  await click('#motion-toggle');
+  assert.equal(await evaluate('document.querySelector("#motion-toggle").getAttribute("aria-pressed")'), 'true');
+  await click('[data-flow-action=start]');
+  await waitFor('new URL(location.href).searchParams.get("screen") === "fields" && document.activeElement === document.querySelector("#flow-title")', 'the paused career-selection field screen');
+  await waitFor(`${active}.length === 0`, 'manual motion pause to keep field selection still');
+  await click('#motion-toggle'); await reduced('reduce');
+  for (const [selector, screen] of [['[data-flow-field=it]', 'careers'], ['[data-flow-career=ciso]', 'profile']]) {
+    await click(selector);
+    await waitFor(`new URL(location.href).searchParams.get('screen') === ${JSON.stringify(screen)} && document.activeElement === document.querySelector('#flow-title')`, `the reduced-motion ${screen} screen`);
+    await waitFor(`${active}.length === 0`, `the reduced-motion ${screen} screen to stay still`);
+  }
+  await click('[data-flow-action=ready]'); await ready();
+  await waitFor('!document.querySelector("#career-experience").hidden && document.querySelector("#career-flow").hidden', 'career confirmation to show the journey with reduced motion');
+  await waitFor(`${active}.length === 0`, 'the confirmed journey to respect reduced motion');
+  assert.deepEqual(errors, [], 'Uncaught browser errors during motion checks');
+  console.log('PASS: finite pathway and career-selection entrances, visible settled content, slider focus, journey play/pause, immediate manual/system motion stop, stage exploration, modal animation/Escape, pause/resume persistence, mobile layout and fully operable reduced-motion career selection.');
   await call('Browser.close');
 } finally { if (ws?.readyState === WebSocket.OPEN) ws.close(); chrome.kill(); }

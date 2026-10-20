@@ -4,15 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#1E2859">
-  <meta name="description" content="Your career, step by step. Choose your qualification and experience to explore ICT career pathways and linked COSMO courses.">
-  <title>COSMO Career Pathways — Your career, step by step.</title>
+  <meta name="description" content="What do you want to be? Choose a field, meet your future career character and start a pathway through the skills, qualifications and experience you need.">
+  <title>COSMO Career Pathways — What do you want to be?</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="motion.css">
+  <link rel="stylesheet" href="career-flow.css">
   <script type="module" src="app.js"></script>
 </head>
 <body>
-  <a class="skip-link" href="#main-content">Skip to your pathway</a>
+  <a class="skip-link" id="skip-link" href="#career-flow">Skip to career selection</a>
   <header class="brandbar">
     <div class="container brandbar-inner">
       <a class="brand" href="./" aria-label="COSMO Career Pathways home">
@@ -22,10 +23,16 @@
       <div class="header-actions"><button class="motion-control" id="motion-toggle" aria-label="Pause animations" aria-pressed="false"><span class="motion-control-label">Motion on</span></button><span class="project-badge">GRADUATION PROJECT</span></div>
     </div>
   </header>
+  <main class="container career-flow" id="career-flow" tabindex="-1" aria-label="Choose your future career">
+    <nav class="flow-progress-nav" aria-label="Career selection progress"><ol id="flow-progress"></ol></nav>
+    <div id="flow-content"><section class="flow-screen flow-loading" role="status"><p class="flow-kicker">YOUR NEXT CHAPTER</p><h1 id="flow-title" tabindex="-1">What do you want to be?</h1><p>Preparing your career choices…</p></section></div>
+  </main>
+  <div id="career-experience" hidden>
+  <div class="container journey-return-bar"><button class="text-button" id="change-career"><span data-icon="arrow-left"></span> Change career</button><span>Your choice, your pathway.</span></div>
   <section class="hero" id="hero" aria-labelledby="page-title">
     <div class="container hero-inner">
       <div class="hero-layout">
-        <div class="hero-copy"><p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> EVERY EXPERT STARTED SOMEWHERE</p><h1 id="page-title">Your future.<br><span>One level at a time.</span></h1><p>See who you could become. Start with your qualifications, choose your destination, and discover the skills and experience that connect the two.</p><a class="hero-cta" href="#journey-panel">Discover your journey <span data-icon="arrow-right"></span></a><p class="hero-note">Your ambition. Your starting point. Your pathway.</p></div>
+        <div class="hero-copy"><p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> EVERY EXPERT STARTED SOMEWHERE</p><h1 id="page-title" tabindex="-1">Your future.<br><span>One level at a time.</span></h1><p>See who you could become. Start with your qualifications, choose your destination, and discover the skills and experience that connect the two.</p><a class="hero-cta" href="#journey-panel">Discover your journey <span data-icon="arrow-right"></span></a><p class="hero-note">Your ambition. Your starting point. Your pathway.</p></div>
         <aside class="future-preview" aria-label="Illustrated preview of your career goal" hidden><div class="preview-topline"><span>YOUR FUTURE, VISUALISED</span><span class="live-indicator">GOAL PREVIEW</span></div><div class="future-character-stage"><span class="preview-orbit" aria-hidden="true"></span><span class="preview-orbit orbit-two" aria-hidden="true"></span><span class="character-sprite" id="future-character" style="--character-frame:5" aria-hidden="true"></span></div><div class="preview-caption"><small>Imagine your next chapter as a</small><strong id="future-title">Cyber Security Leader</strong><span class="preview-level-badge" id="future-stage">LEADERSHIP</span></div></aside>
       </div>
       <div class="profile-panel">
@@ -65,6 +72,7 @@
     </section>
   </main>
   <footer class="container site-footer"><div><p>Route data based on the Brunei ICT Industry Competency Framework (BIICF) and COSMO course levels.</p><p>Unofficial student guide. Confirm qualification subjects, certifications and current requirements with the official sources.</p></div><div class="footer-links"><button class="text-button" id="courses-button">Explore COSMO courses <span data-icon="arrow-up-right"></span></button><button class="text-button" id="about-button">About this guide <span data-icon="info"></span></button></div></footer>
+  </div>
   <dialog class="detail-dialog" id="detail-dialog" aria-labelledby="detail-title"><button class="icon-button dialog-close" id="close-detail" aria-label="Close details"><span data-icon="x"></span></button><div id="detail-content"></div></dialog>
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 </body>

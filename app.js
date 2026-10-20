@@ -1,5 +1,6 @@
 import { buildRoadmap, bestRoute } from './career-model.js';
 import { initializeMotion } from './motion.js';
+import { initializeCareerFlow } from './career-flow.js';
 
 const motion = initializeMotion();
 const symbols = {
@@ -46,6 +47,7 @@ const saved = readStorage('pathfinder-saved', []);
 const state = { sector: 'ict-security', qualification: Object.hasOwn(qualifications, prior.qualification || prior.from) ? prior.qualification || prior.from : 'olevel', years: Math.max(0, Math.min(50, Math.floor(Number(prior.years) || 0))), goal: typeof prior.goal === 'string' ? prior.goal : 'ciso', route: 0, saved: new Set(Array.isArray(saved) ? saved.filter(id => typeof id === 'string') : []), dialogMode: '', courseQuery: '' };
 let roles = [], courses = [], sectors = [], roleCourses = {}, metadata = {}, toastTimer;
 let journeyItems = [], journeyIndex = 0, journeySignature = '', journeyTimer;
+let careerFlow;
 const row = document.getElementById('pathway-scroll');
 const dialog = document.getElementById('detail-dialog');
 const detail = document.getElementById('detail-content');
@@ -66,12 +68,18 @@ function readLocation() {
   state.route = params.get('r') === '1' ? 1 : 0;
 }
 function updateLocation(push = false) {
-  const url = new URL(location.href); url.search = '';
+  const url = new URL(location.href);
+  // Keep the selection flow in the URL while profile and pathway choices change.
+  for (const name of [...url.searchParams.keys()]) if (!['screen', 'field', 'career'].includes(name)) url.searchParams.delete(name);
   url.searchParams.set('sector', state.sector);
   url.searchParams.set('from', qualifications[state.qualification].from);
   if (qualifications[state.qualification].estimated) url.searchParams.set('q', state.qualification);
   url.searchParams.set('exp', state.years);
   if (state.goal) url.searchParams.set('goal', state.goal);
+  if (url.searchParams.get('screen') === 'journey') {
+    if (state.goal) url.searchParams.set('career', state.goal); else url.searchParams.delete('career');
+    url.searchParams.set('field', state.sector === 'digital-media' ? 'creative' : 'it');
+  }
   if (state.route) url.searchParams.set('r', '1');
   history[push ? 'pushState' : 'replaceState']({}, '', url);
 }
@@ -299,7 +307,7 @@ document.getElementById('close-detail').addEventListener('click', () => dialog.c
 dialog.addEventListener('click', event => { if (event.target !== dialog) return; const rect = dialog.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) dialog.close(); });
 dialog.addEventListener('close', () => { state.dialogMode = ''; });
 document.addEventListener('input', event => { if (event.target.id === 'course-search') { state.courseQuery = event.target.value; renderCourses(); } });
-window.addEventListener('popstate', () => { readLocation(); renderPathway(); });
+window.addEventListener('popstate', () => { readLocation(); renderPathway(); careerFlow?.syncFromLocation({ focus: true }); });
 fillIcons(); updateProfile(); syncJourneyMotion();
 async function loadData() {
   const notice = document.getElementById('data-notice');
@@ -309,8 +317,17 @@ async function loadData() {
     if (!Array.isArray(roles) || !roles.length || !Array.isArray(courses) || !Array.isArray(sectors)) throw new Error('Invalid pathway data');
     state.saved = new Set([...state.saved].filter(id => roles.some(role => role.id === id)));
     readLocation(); renderPathway();
+    careerFlow = initializeCareerFlow({
+      roles, sectorDisplay, characterFrame, icon, esc, motion,
+      onStart(role) {
+        state.sector = role.sector; state.goal = role.id; state.route = 0;
+        persistProfile(); renderPathway(); updateLocation();
+      },
+      onLeaveJourney() { stopJourney(); if (dialog.open) dialog.close(); },
+    });
+    careerFlow.syncFromLocation();
     notice.innerHTML = `${metadata.mode === 'spec-examples' ? `<strong>Preview data:</strong> ${roles.length} role examples and ${courses.length} course examples from the specification. Full dataset links were unavailable when this snapshot was retrieved. ` : ''}<span>*Ready now checks qualification level and years only. All other route requirements still apply.</span>`;
     motion.refresh(document);
-  } catch { row.innerHTML = '<div class="empty-state"><h3>The pathway data could not be loaded.</h3><p>Please refresh the page to try again.</p></div>'; notice.textContent = 'Use an HTTP server to open this page and its data files.'; }
+  } catch { row.innerHTML = '<div class="empty-state"><h3>The pathway data could not be loaded.</h3><p>Please refresh the page to try again.</p></div>'; notice.textContent = 'Use an HTTP server to open this page and its data files.'; document.getElementById('flow-content').innerHTML = '<section class="flow-screen flow-empty"><h1 id="flow-title" tabindex="-1">Your future is still ahead.</h1><p>The career data could not be loaded. Refresh the page to try again.</p><a class="button button-primary" href="./">Try again</a></section>'; }
 }
 loadData();

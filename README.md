@@ -1,10 +1,22 @@
 # COSMO Career Pathways
 
-A responsive career pathway explorer in COSMO blue and yellow. A connected character journey visualises a possible future, from a student's first steps to a technology leader. Select a stage, use the keyboard controls or play the finite journey preview, then explore the real qualifications, skills, certifications and experience behind each role. Qualification pills, an experience slider, sector tabs, bookmarks, a course catalogue and shareable goals are included. Built with plain HTML, CSS and JavaScript; no runtime dependencies or account required.
+A responsive career pathway explorer in COSMO blue and yellow. Students start with “What do you want to be?”, choose a field and career, meet its illustrated future character, and press “I’m Ready” to enter the pathway. A connected character journey visualises the stages toward that goal, with the real qualifications, skills, certifications and experience behind each role. Qualification pills, an experience slider, sector tabs, bookmarks, a course catalogue and shareable goals are included. Built with plain HTML, CSS and JavaScript; no runtime dependencies or account required.
 
 Live website: https://abi437.github.io/cosmo-career-pathways/
 
 Public source repository: https://github.com/abi437/cosmo-career-pathways
+
+## Student flow
+
+1. **Start:** “What do you want to be?” introduces the journey.
+2. **Field:** choose IT, Creative or Business.
+3. **Careers:** browse the careers available for that field.
+4. **Your future:** see the selected career's character, summary and published skills, then press **I’m Ready** to confirm.
+5. **Journey:** explore the career stages and adjust qualification and experience to understand the next requirements.
+
+Back controls and browser Back/Forward preserve the selection flow. **Change career** returns to career selection without clearing qualification or experience settings. Existing shared `?goal=...` links open the journey directly; ordinary visits start at the opening question. The URL records the active screen and selection.
+
+IT groups the source's software, cyber security, network, data/AI and IT services sectors. Creative maps to Digital Media. The supplied snapshot contains six IT role records, no Creative role records and no Business sector records, so those fields show clear empty states rather than fabricated careers. New career data can be added through the existing validated refresh workflow.
 
 ## Run
 
