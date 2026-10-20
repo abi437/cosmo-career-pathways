@@ -74,3 +74,5 @@ The top-bar motion control pauses animations and remembers the choice locally. S
 With the local server running, use `node scripts/motion-check.mjs` to check normal motion, pausing, reduced motion, input focus, dialogs and mobile layout in Chrome.
 
 Character artwork: [`assets/career-evolution.png`](assets/career-evolution.png), generated with the built-in image generator. The final prompt and provenance are documented in [`assets/career-evolution-prompt.md`](assets/career-evolution-prompt.md). The transparent 2172 × 724 image contains six equal 362 × 724 sprite cells and is bundled locally with the static site.
+
+The browser loads [`assets/career-evolution.webp`](assets/career-evolution.webp), a delivery copy at the same dimensions and with identical transparency that reduces the artwork download by 73%. Set `PATHFINDER_CHROME_PROFILE` to a fresh profile directory when checking a new public deployment to avoid stale browser cache.

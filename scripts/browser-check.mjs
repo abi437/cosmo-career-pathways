@@ -8,7 +8,7 @@ const baseUrl = process.env.PATHFINDER_URL || 'http://127.0.0.1:8080/';
 await mkdir(artifacts, { recursive: true });
 const chrome = spawn('C:/Program Files/Google/Chrome/Application/chrome.exe', [
   '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--no-sandbox',
-  '--remote-debugging-port=9333', `--user-data-dir=${path.join(artifacts, 'chrome-profile')}`, 'about:blank',
+  '--remote-debugging-port=9333', `--user-data-dir=${path.resolve(process.env.PATHFINDER_CHROME_PROFILE || path.join(artifacts, 'chrome-profile'))}`, 'about:blank',
 ], { windowsHide: true, stdio: 'ignore' });
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const errors = [];
@@ -37,12 +37,12 @@ try {
   function call(method, params = {}) {
     return new Promise((resolve, reject) => {
       const id = nextId++;
-      const timeout = setTimeout(() => { pending.delete(id); reject(new Error(`CDP timeout: ${method}`)); }, 10000);
+      const timeout = setTimeout(() => { pending.delete(id); reject(new Error(`CDP timeout: ${method}`)); }, method === 'Runtime.evaluate' ? 30000 : 10000);
       pending.set(id, { resolve, reject, timeout }); ws.send(JSON.stringify({ id, method, params }));
     });
   }
   async function evaluate(expression) {
-    const result = await call('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
+    const result = await call('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }).catch(error => { throw new Error(`${error.message} while evaluating ${expression.slice(0, 180)}`, { cause: error }); });
     if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || result.exceptionDetails.text);
     return result.result.value;
   }
@@ -73,7 +73,7 @@ try {
     await call('Input.dispatchKeyEvent', { type: 'keyUp', key, code, windowsVirtualKeyCode }); await frames();
   }
   async function waitFlow(screen, focused = false) {
-    await waitFor(`document.querySelector('#career-flow')?.getClientRects().length > 0 && document.querySelector('#flow-title') && (new URL(location.href).searchParams.get('screen') || 'welcome') === ${JSON.stringify(screen)}`, `the ${screen} career-selection screen`);
+    await waitFor(`document.querySelector('#career-flow')?.getClientRects().length > 0 && document.querySelector('#flow-title') && document.querySelectorAll('#flow-progress > li').length === 5 && !document.querySelector('#flow-content .flow-loading') && (new URL(location.href).searchParams.get('screen') || 'welcome') === ${JSON.stringify(screen)}`, `the ${screen} career-selection screen`);
     assert(await evaluate('document.querySelector("#career-experience").hidden'), `The pathway is visible before the ${screen} step is confirmed`);
     if (focused) await waitFor('document.activeElement === document.querySelector("#flow-title")', `the ${screen} screen title to receive focus`);
   }
