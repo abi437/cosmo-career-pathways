@@ -18,9 +18,9 @@ Back controls and browser Back/Forward preserve the selection flow. **Change car
 
 IT groups the source's software, cyber security, network, data/AI and IT services sectors. Creative maps to Digital Media. The supplied snapshot contains six IT role records, no Creative role records and no Business sector records, so those fields show clear empty states rather than fabricated careers. New career data can be added through the existing validated refresh workflow.
 
-Each field card now has a career portrait based on the supplied reference photo: IT with a laptop, Creative with a drawing tablet and stylus, and Business in a suit with a portfolio. The matching Creative and Business portraits also appear beside their availability notices. These are illustrative career outfits; the original role data and journey requirements are unchanged.
+Each field card has a smiling career portrait based on the supplied reference photo: IT with a laptop, Creative with a drawing tablet and stylus, and Business in a suit with a portfolio. The matching Creative and Business portraits also appear beside their availability notices. The same smiling man now appears at all six character levels, in the welcome scene, career list, future profile, goal preview and journey cards. These are illustrative career outfits; role data and journey requirements are unchanged.
 
-Original transparent portraits and their individual generation prompts are saved as `assets/field-{it,creative,business}.png` and `assets/field-{it,creative,business}-prompt.md`. They were made with the built-in image generator. Lightweight 720-pixel-wide WebP copies are served through `<picture>`, with PNG fallbacks.
+Original transparent smiling portraits and their individual generation prompts are saved as `assets/field-{it,creative,business}-smiling.png` and `assets/field-{it,creative,business}-smiling-prompt.md`. They were made with the built-in image generator. Lightweight 720-pixel-wide WebP copies are served through `<picture>`, with PNG fallbacks. Earlier portrait files remain available as source history.
 
 ## Run
 
@@ -77,6 +77,6 @@ The top-bar motion control pauses animations and remembers the choice locally. S
 
 With the local server running, use `node scripts/motion-check.mjs` to check normal motion, pausing, reduced motion, input focus, dialogs and mobile layout in Chrome.
 
-Character artwork: [`assets/career-evolution.png`](assets/career-evolution.png), generated with the built-in image generator. The final prompt and provenance are documented in [`assets/career-evolution-prompt.md`](assets/career-evolution-prompt.md). The transparent 2172 × 724 image contains six equal 362 × 724 sprite cells and is bundled locally with the static site.
+Character artwork: [`assets/character-levels-smiling.png`](assets/character-levels-smiling.png), generated with the built-in image generator from the supplied man's likeness. The final prompt and provenance are documented in [`assets/character-levels-smiling-prompt.md`](assets/character-levels-smiling-prompt.md). The transparent 2172 × 724 image shows a smiling learner, trainee, analyst, specialist, manager and leader. Measured background positions keep each complete figure centred within its viewport despite the source's uneven spacing.
 
-The browser loads [`assets/career-evolution.webp`](assets/career-evolution.webp), a delivery copy at the same dimensions and with identical transparency that reduces the artwork download by 73%. Set `PATHFINDER_CHROME_PROFILE` to a fresh profile directory when checking a new public deployment to avoid stale browser cache.
+The browser loads [`assets/character-levels-smiling.webp`](assets/character-levels-smiling.webp), a lightweight delivery copy at the same dimensions. Set `PATHFINDER_CHROME_PROFILE` to a fresh profile directory when checking a new public deployment to avoid stale browser cache.

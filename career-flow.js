@@ -1,8 +1,8 @@
 /** The career chooser is a URL-driven introduction to the existing pathway. */
 export const careerFields = [
-  { id: 'it', title: 'IT', label: 'Information Technology', description: 'Build, connect and protect the digital world.', icon: 'compass', portrait: 'assets/field-it', portraitAlt: 'IT professional holding a laptop' },
-  { id: 'creative', title: 'Creative', label: 'Creative & Digital Media', description: 'Bring ideas to life through design, content and digital experiences.', icon: 'bookmark', portrait: 'assets/field-creative', portraitAlt: 'Creative professional with a drawing tablet' },
-  { id: 'business', title: 'Business', label: 'Business & Leadership', description: 'Explore the people, decisions and ideas behind organisations.', icon: 'book', portrait: 'assets/field-business', portraitAlt: 'Business professional in a navy suit holding a portfolio' },
+  { id: 'it', title: 'IT', label: 'Information Technology', description: 'Build, connect and protect the digital world.', icon: 'compass', portrait: 'assets/field-it-smiling', portraitAlt: 'Smiling IT professional holding a laptop' },
+  { id: 'creative', title: 'Creative', label: 'Creative & Digital Media', description: 'Bring ideas to life through design, content and digital experiences.', icon: 'bookmark', portrait: 'assets/field-creative-smiling', portraitAlt: 'Smiling Creative professional with a drawing tablet' },
+  { id: 'business', title: 'Business', label: 'Business & Leadership', description: 'Explore the people, decisions and ideas behind organisations.', icon: 'book', portrait: 'assets/field-business-smiling', portraitAlt: 'Smiling Business professional in a navy suit holding a portfolio' },
 ];
 
 export function initializeCareerFlow({ roles, sectorDisplay, characterFrame, icon, esc, motion, onStart, onLeaveJourney }) {
@@ -22,7 +22,7 @@ export function initializeCareerFlow({ roles, sectorDisplay, characterFrame, ico
   const fieldById = id => careerFields.find(field => field.id === id);
   const roleById = id => allRoles.find(role => role.id === id);
   const rolesInField = field => allRoles.filter(role => fieldForRole(role) === field).sort((a, b) => (stageOrder[a.stage] ?? 4) - (stageOrder[b.stage] ?? 4) || a.title.localeCompare(b.title));
-  const sprite = frame => `<span class="character-sprite" style="--character-frame:${Math.max(0, Math.min(5, Number(frame) || 0))}"></span>`;
+  const sprite = frame => { const level = Math.max(0, Math.min(5, Number(frame) || 0)); return `<span class="character-sprite" data-character-level="${level}" style="--character-frame:${level}"></span>`; };
   const button = (action, label, primary = false) => `<button type="button" class="button ${primary ? 'button-primary flow-primary' : 'button-secondary flow-secondary'}" data-flow-action="${action}">${label}</button>`;
   const fieldPortrait = field => `<picture class="flow-field-picture"><source srcset="${field.portrait}.webp" type="image/webp"><img class="flow-field-photo" src="${field.portrait}.png" alt="${esc(field.portraitAlt)}" width="1086" height="1448" decoding="async"></picture>`;
 

@@ -101,6 +101,30 @@ try {
     const result = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: full, ...(full ? { clip: { x: 0, y: 0, width: dimensions.width, height: dimensions.height, scale: 1 } } : {}) });
     await writeFile(path.join(artifacts, name), Buffer.from(result.data, 'base64'));
   }
+  async function screenshotRegion(name, selector) {
+    await frames();
+    await waitFor('!document.getAnimations().some(animation => animation.playState === "running" || animation.pending)', 'the character artwork to settle before screenshot');
+    const clip = await evaluate(`(() => { const bounds = document.querySelector(${JSON.stringify(selector)}).getBoundingClientRect(); return { x: bounds.left + scrollX, y: bounds.top + scrollY, width: bounds.width, height: bounds.height, scale: 2 }; })()`);
+    const result = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip });
+    await writeFile(path.join(artifacts, name), Buffer.from(result.data, 'base64'));
+  }
+  async function checkCharacterSprites(selector = '.character-sprite') {
+    const characters = await evaluate(`Promise.all([...document.querySelectorAll(${JSON.stringify(selector)})].map(async element => {
+      const style = getComputedStyle(element);
+      const source = style.backgroundImage.match(/url\\(["']?(.*?)["']?\\)/)?.[1];
+      if (!source) throw new Error('A career character has no image source');
+      const image = new Image(); image.src = source; await image.decode();
+      return { level: element.dataset.characterLevel, frame: element.style.getPropertyValue('--character-frame').trim(), source, width: image.naturalWidth, height: image.naturalHeight, position: style.backgroundPositionX };
+    }))`);
+    assert(characters.length > 0, `${selector} has no career characters`);
+    for (const character of characters) {
+      assert.match(new URL(character.source).pathname, /\/assets\/character-levels-smiling\.webp$/, 'A character still uses the earlier fantasy artwork');
+      assert.deepEqual({ width: character.width, height: character.height }, { width: 2172, height: 724 }, 'The smiling six-level character artwork did not decode correctly');
+      assert.match(character.level || '', /^[0-5]$/, 'A character is missing its explicit level');
+      assert.equal(character.level, character.frame, 'A character level does not match its selected artwork frame');
+    }
+    return characters;
+  }
   async function checkFieldPortraits(mobile = false) {
     const portraits = await evaluate(`Promise.all([...document.querySelectorAll('#flow-content [data-flow-field]')].map(async card => {
       const image = card.querySelector('img.flow-field-photo');
@@ -124,9 +148,9 @@ try {
     assert.equal(new Set(portraits.map(portrait => portrait.loaded)).size, 3, 'Career fields share the same portrait instead of their respective professional');
     const descriptions = { it: /\bIT\b|technology/i, creative: /creative|design/i, business: /business/i };
     for (const portrait of portraits) {
-      assert.match(portrait.webp || '', new RegExp(`(?:^|/)assets/field-${portrait.field}\\.webp(?:$|\\s)`), `${portrait.field} has a mismatched WebP source`);
-      assert.match(portrait.fallback || '', new RegExp(`(?:^|/)assets/field-${portrait.field}\\.png$`), `${portrait.field} has a mismatched PNG fallback`);
-      assert.equal(new URL(portrait.loaded).pathname.endsWith(`/assets/field-${portrait.field}.webp`), true, `${portrait.field} did not load its WebP portrait`);
+      assert.match(portrait.webp || '', new RegExp(`(?:^|/)assets/field-${portrait.field}-smiling\\.webp(?:$|\\s)`), `${portrait.field} has a mismatched WebP source`);
+      assert.match(portrait.fallback || '', new RegExp(`(?:^|/)assets/field-${portrait.field}-smiling\\.png$`), `${portrait.field} has a mismatched PNG fallback`);
+      assert.equal(new URL(portrait.loaded).pathname.endsWith(`/assets/field-${portrait.field}-smiling.webp`), true, `${portrait.field} did not load its smiling WebP portrait`);
       assert(portrait.width > 0 && portrait.height > 0, `${portrait.field} portrait did not decode`);
       assert(portrait.alt.length > 15 && descriptions[portrait.field]?.test(portrait.alt), `${portrait.field} portrait needs meaningful field-specific alternative text`);
       assert(portrait.displayed, `${portrait.field} portrait is not visibly displayed`);
@@ -153,6 +177,8 @@ try {
   assert.equal(await evaluate('document.querySelector("#flow-title").innerText.replace(/\\s+/g, " ").trim()'), 'What do you want to be?');
   assert.equal(await evaluate('document.querySelector("#flow-progress").children.length'), 5, 'The guide should communicate its five selection steps');
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'The desktop welcome screen overflows');
+  const welcomeCharacters = await checkCharacterSprites('#flow-content .character-sprite');
+  assert.deepEqual(welcomeCharacters.map(character => character.level), ['0', '5'], 'The welcome scene should show the student and future professional');
   await screenshot('desktop-welcome.png', true);
   await evaluate('document.querySelector("[data-flow-action=start]").focus()'); await key('Enter');
   await waitFlow('fields', true);
@@ -163,6 +189,7 @@ try {
   await evaluate('document.querySelector("[data-flow-field=it]").focus()'); await key('Enter');
   await waitFlow('careers', true);
   assert.equal(await evaluate('document.querySelectorAll("#flow-content [data-flow-career]").length'), 6, 'IT should contain the six published career examples');
+  assert.equal((await checkCharacterSprites('#flow-content .flow-career-card .character-sprite')).length, 6, 'Each career card should show the smiling human character');
   await screenshot('desktop-careers.png', true);
   await evaluate('document.querySelector("#flow-search").focus()'); await setValue('#flow-search', 'Security Planning', 'input');
   assert.equal(await evaluate('document.querySelectorAll("#flow-content [data-flow-career]").length'), 1, 'Career search should include published skill names');
@@ -173,6 +200,7 @@ try {
   await click('[data-flow-career="associate-security-analyst"]'); await waitFlow('profile', true);
   assert.match(await evaluate('document.querySelector("#flow-content").textContent'), /Associate Security Analyst/);
   assert(await evaluate('!!document.querySelector("#flow-content .character-sprite")'), 'The career profile is missing its illustrated character');
+  assert.equal((await checkCharacterSprites('#flow-content .flow-profile-character .character-sprite')).length, 1, 'The selected career profile should show the smiling human character');
   await screenshot('desktop-profile.png', true);
   assert.match(await evaluate('document.querySelector("[data-flow-action=ready]").textContent'), /I.m Ready/i);
   assert(await evaluate('document.querySelector("#flow-progress [data-flow-screen=journey]").disabled'), 'The profile should require the I’m Ready action before starting a journey');
@@ -218,17 +246,18 @@ try {
   assert.equal(await evaluate('document.querySelectorAll("[data-evolution]").length'), 6, 'The default journey should include a starting point and five career stages');
   assert.match(await evaluate('document.querySelector("#future-title").textContent'), /Chief Information Security Officer \(CISO\)/);
   assert.equal(await evaluate('document.querySelector("#future-character").style.getPropertyValue("--character-frame")'), '5');
+  const journeyCharacters = await checkCharacterSprites();
+  const levels = await checkCharacterSprites('#evolution-track .character-sprite');
+  assert.deepEqual(levels.map(character => character.level), ['0', '1', '2', '3', '4', '5'], 'The default journey should show six distinct ordered human character levels');
+  assert.equal(new Set(levels.map(character => character.position)).size, 6, 'Journey levels repeat the same artwork frame');
+  assert(journeyCharacters.length >= 13, 'Hero, stage, insight and role-card character artwork should all be present');
   assert.match(await evaluate('document.querySelector(".journey-footnote").textContent'), /not BDQF levels or guaranteed promotions/i, 'Visual progression must be distinguished from formal qualifications');
-  const sprite = await evaluate(`new Promise((resolve, reject) => {
-    const source = getComputedStyle(document.querySelector('#future-character')).backgroundImage.match(/url\\(["']?(.*?)["']?\\)/)?.[1];
-    if (!source) { reject(new Error('The future character has no image source')); return; }
-    const image = new Image(); image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight }); image.onerror = () => reject(new Error('The character sprite failed to load')); image.src = source;
-  })`);
-  assert.deepEqual(sprite, { width: 2172, height: 724 }, 'The six-frame character artwork did not decode correctly');
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Desktop document has horizontal overflow');
   await screenshot('desktop.png', true);
+  await screenshotRegion('character-levels.png', '#evolution-track');
 
   await click('[data-evolution="5"]');
+  assert.equal((await checkCharacterSprites('#journey-insight .character-sprite'))[0].level, '5', 'Selecting the destination did not update the smiling insight character');
   assert(await evaluate('document.querySelector("#journey-insight .insight-copy strong").textContent.includes("(CISO)") && document.querySelector("[data-role-card=ciso]").classList.contains("is-highlighted")'), 'Selecting the final stage did not connect its insight and requirement card');
   assert.equal(await evaluate('document.querySelector("#journey-next").disabled'), true);
   await click('#journey-prev'); assert.equal(await evaluate('document.querySelector("[data-evolution][aria-pressed=true]").dataset.evolution'), '4');
@@ -324,6 +353,7 @@ try {
   await call('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
   await navigate(); await waitFlow('welcome');
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Mobile welcome has horizontal overflow');
+  await checkCharacterSprites('#flow-content .character-sprite');
   await screenshot('mobile-welcome.png', true);
   await click('[data-flow-action=start]'); await waitFlow('fields', true);
   assert(await evaluate('[...document.querySelectorAll("#flow-content [data-flow-field]")].every(element => { const r = element.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; })'), 'Mobile field-selection buttons are clipped');
@@ -340,19 +370,21 @@ try {
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Mobile career list has horizontal overflow');
   await click('[data-flow-career=ciso]'); await waitFlow('profile', true);
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth && document.querySelector("[data-flow-action=ready]").getBoundingClientRect().right <= innerWidth'), 'Mobile career profile or confirmation action is clipped');
+  await checkCharacterSprites('#flow-content .flow-profile-character .character-sprite');
   await screenshot('mobile-profile.png', true);
   await click('[data-flow-action=ready]'); await waitJourney('ciso');
   await navigate('?sector=ict-security&from=olevel&exp=0&goal=ciso'); await frames();
   await waitJourney('ciso');
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Mobile document has horizontal overflow');
   assert(await evaluate('[...document.querySelectorAll(".qualification-pill, #experience-slider, #goal-select, #more-sectors")].every(element => { const r = element.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; })'), 'Mobile profile controls are clipped');
+  await checkCharacterSprites();
   await screenshot('mobile.png', true); await checkHorizontalScroll('#evolution-track'); await checkHorizontalScroll();
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Scrolling mobile journey tracks caused document overflow');
   await click('.card-open[data-detail="associate-security-analyst"]');
   assert(await evaluate('(() => { const dialog = document.querySelector("#detail-dialog"); const r = dialog.getBoundingClientRect(); return dialog.open && r.left >= 0 && r.right <= innerWidth && r.height <= innerHeight; })()'), 'Mobile role details do not fit');
   await screenshot('mobile-detail.png'); await escape();
   assert.deepEqual(errors, [], 'Uncaught browser errors');
-  console.log('PASS: five-step career selection, three correctly matched and decoded career-field portraits with PNG fallbacks, keyboard entry/focus, browser Back/Forward, truthful field lists, illustrated profiles, confirmation/change-career, guarded/deep links, six-stage evolution, readiness, saved careers, details, courses, sharing, motion-safe mobile selection and pathway layouts.');
-  console.log('Screenshots saved in artifacts/desktop-welcome.png, artifacts/desktop-fields.png, artifacts/desktop-careers.png, artifacts/desktop-profile.png, artifacts/mobile-welcome.png, artifacts/mobile-fields.png, artifacts/mobile-profile.png, artifacts/desktop.png, artifacts/mobile.png and artifacts/mobile-detail.png.');
+  console.log('PASS: five-step career selection, three matched smiling field portraits with PNG fallbacks, smiling human artwork across welcome/list/profile/hero/stages/insight/role cards, six distinct ordered level frames, keyboard entry/focus, browser Back/Forward, truthful field lists, confirmation/change-career, guarded/deep links, readiness, saved careers, details, courses, sharing, motion-safe mobile selection and pathway layouts.');
+  console.log('Screenshots saved in artifacts/desktop-welcome.png, artifacts/desktop-fields.png, artifacts/desktop-careers.png, artifacts/desktop-profile.png, artifacts/mobile-welcome.png, artifacts/mobile-fields.png, artifacts/mobile-profile.png, artifacts/desktop.png, artifacts/character-levels.png, artifacts/mobile.png and artifacts/mobile-detail.png.');
   await call('Browser.close');
 } finally { if (ws?.readyState === WebSocket.OPEN) ws.close(); chrome.kill(); }
