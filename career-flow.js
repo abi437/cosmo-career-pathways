@@ -1,8 +1,8 @@
 /** The career chooser is a URL-driven introduction to the existing pathway. */
 export const careerFields = [
-  { id: 'it', title: 'IT', label: 'Information Technology', description: 'Build, connect and protect the digital world.', icon: 'compass' },
-  { id: 'creative', title: 'Creative', label: 'Creative & Digital Media', description: 'Bring ideas to life through design, content and digital experiences.', icon: 'bookmark' },
-  { id: 'business', title: 'Business', label: 'Business & Leadership', description: 'Explore the people, decisions and ideas behind organisations.', icon: 'book' },
+  { id: 'it', title: 'IT', label: 'Information Technology', description: 'Build, connect and protect the digital world.', icon: 'compass', portrait: 'assets/field-it', portraitAlt: 'IT professional holding a laptop' },
+  { id: 'creative', title: 'Creative', label: 'Creative & Digital Media', description: 'Bring ideas to life through design, content and digital experiences.', icon: 'bookmark', portrait: 'assets/field-creative', portraitAlt: 'Creative professional with a drawing tablet' },
+  { id: 'business', title: 'Business', label: 'Business & Leadership', description: 'Explore the people, decisions and ideas behind organisations.', icon: 'book', portrait: 'assets/field-business', portraitAlt: 'Business professional in a navy suit holding a portfolio' },
 ];
 
 export function initializeCareerFlow({ roles, sectorDisplay, characterFrame, icon, esc, motion, onStart, onLeaveJourney }) {
@@ -24,6 +24,7 @@ export function initializeCareerFlow({ roles, sectorDisplay, characterFrame, ico
   const rolesInField = field => allRoles.filter(role => fieldForRole(role) === field).sort((a, b) => (stageOrder[a.stage] ?? 4) - (stageOrder[b.stage] ?? 4) || a.title.localeCompare(b.title));
   const sprite = frame => `<span class="character-sprite" style="--character-frame:${Math.max(0, Math.min(5, Number(frame) || 0))}"></span>`;
   const button = (action, label, primary = false) => `<button type="button" class="button ${primary ? 'button-primary flow-primary' : 'button-secondary flow-secondary'}" data-flow-action="${action}">${label}</button>`;
+  const fieldPortrait = field => `<picture class="flow-field-picture"><source srcset="${field.portrait}.webp" type="image/webp"><img class="flow-field-photo" src="${field.portrait}.png" alt="${esc(field.portraitAlt)}" width="1086" height="1448" decoding="async"></picture>`;
 
   function resolveLocation() {
     const params = new URLSearchParams(location.search);
@@ -74,7 +75,7 @@ export function initializeCareerFlow({ roles, sectorDisplay, characterFrame, ico
   function fieldsMarkup() {
     return `<div class="flow-screen"><div class="flow-heading"><span class="flow-kicker flow-eyebrow">02 / CHOOSE YOUR DIRECTION</span><h1 class="flow-title" id="flow-title" tabindex="-1">Which world interests you?</h1><p class="flow-intro">Start with a field. You can always come back and explore another direction.</p></div><div class="flow-field-grid">${careerFields.map((field, index) => {
       const count = rolesInField(field.id).length;
-      return `<button type="button" class="flow-field-card" data-flow-field="${field.id}"><span class="flow-field-top"><span class="flow-field-icon" aria-hidden="true">${icon(field.icon)}</span><span class="flow-field-number">0${index + 1}</span></span><span class="flow-field-copy"><strong>${field.title}</strong><span>${field.description}</span></span><span class="flow-field-footer"><span>${count ? `${count} published ${count === 1 ? 'career' : 'careers'}` : 'No profiles yet'}</span>${icon('arrow-up-right')}</span></button>`;
+      return `<button type="button" class="flow-field-card" data-flow-field="${field.id}"><span class="flow-field-visual">${fieldPortrait(field)}<span class="flow-field-top" aria-hidden="true"><span class="flow-field-icon">${icon(field.icon)}</span><span class="flow-field-number">0${index + 1}</span></span></span><span class="flow-field-content"><span class="flow-field-copy"><strong>${field.title}</strong><span>${field.description}</span></span><span class="flow-field-footer"><span>${count ? `${count} published ${count === 1 ? 'career' : 'careers'}` : 'No profiles yet'}</span>${icon('arrow-up-right')}</span></span></button>`;
     }).join('')}</div><p class="flow-data-note">This preview uses the career examples available in the published source. More fields and careers will appear when their data is available.</p><div class="flow-actions">${button('back', `${icon('arrow-left')} Back`)}</div></div>`;
   }
 
@@ -86,7 +87,7 @@ export function initializeCareerFlow({ roles, sectorDisplay, characterFrame, ico
     const field = fieldById(current.field);
     const items = rolesInField(current.field);
     const heading = `<div class="flow-heading"><span class="flow-kicker flow-eyebrow">03 / EXPLORE ${esc(field.title.toUpperCase())}</span><h1 class="flow-title" id="flow-title" tabindex="-1">${items.length ? 'Who could you become?' : 'Your next chapter is coming.'}</h1><p class="flow-intro">${items.length ? `Explore ${items.length} published careers in ${esc(field.label)}. Choose one to see your future profile.` : `The source does not include ${esc(field.title.toLowerCase())} career profiles yet. You can explore the available IT pathways while more careers are added.`}</p></div>`;
-    if (!items.length) return `<div class="flow-screen">${heading}<div class="flow-empty"><span class="flow-empty-icon" aria-hidden="true">${icon(field.icon)}</span><h2>No published careers here yet</h2><p>Your possibilities are bigger than this preview. Career profiles will appear here when the source provides them.</p><div class="flow-actions">${button('explore-it', `Explore IT careers ${icon('arrow-right')}`, true)}${button('fields', `${icon('arrow-left')} Back to fields`)}</div></div></div>`;
+    if (!items.length) return `<div class="flow-screen">${heading}<div class="flow-empty flow-empty-with-portrait" data-field="${field.id}"><div class="flow-empty-copy"><span class="flow-empty-icon" aria-hidden="true">${icon(field.icon)}</span><h2>No published careers here yet</h2><p>Your possibilities are bigger than this preview. Career profiles will appear here when the source provides them.</p><div class="flow-actions">${button('explore-it', `Explore IT careers ${icon('arrow-right')}`, true)}${button('fields', `${icon('arrow-left')} Back to fields`)}</div></div><div class="flow-empty-portrait">${fieldPortrait(field)}</div></div></div>`;
     return `<div class="flow-screen">${heading}<div class="flow-career-toolbar"><label class="flow-search-label" for="flow-search">Find a career<span class="flow-search-wrap">${icon('compass')}<input id="flow-search" type="search" placeholder="Search careers or skills" value="${esc(searchQuery)}" autocomplete="off"></span></label><span class="flow-caption" id="flow-result-count" aria-live="polite">${items.length} careers to explore</span></div><div class="flow-career-grid" id="flow-career-results">${careerCardsMarkup(items)}</div><p class="flow-data-note">Characters illustrate career progression. They do not represent a person’s appearance, qualification or guaranteed outcome.</p><div class="flow-actions">${button('fields', `${icon('arrow-left')} Back to fields`)}</div></div>`;
   }
 

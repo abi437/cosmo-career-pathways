@@ -101,6 +101,38 @@ try {
     const result = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: full, ...(full ? { clip: { x: 0, y: 0, width: dimensions.width, height: dimensions.height, scale: 1 } } : {}) });
     await writeFile(path.join(artifacts, name), Buffer.from(result.data, 'base64'));
   }
+  async function checkFieldPortraits(mobile = false) {
+    const portraits = await evaluate(`Promise.all([...document.querySelectorAll('#flow-content [data-flow-field]')].map(async card => {
+      const image = card.querySelector('img.flow-field-photo');
+      if (!image) throw new Error('Missing career portrait for ' + card.dataset.flowField);
+      await image.decode();
+      const bounds = image.getBoundingClientRect();
+      const cardBounds = card.getBoundingClientRect();
+      return {
+        field: card.dataset.flowField,
+        fallback: image.getAttribute('src'),
+        webp: image.closest('picture')?.querySelector('source[type="image/webp"]')?.getAttribute('srcset'),
+        loaded: image.currentSrc,
+        alt: image.alt,
+        width: image.naturalWidth,
+        height: image.naturalHeight,
+        displayed: bounds.width > 60 && bounds.height > 100 && getComputedStyle(image).visibility !== 'hidden' && getComputedStyle(image).display !== 'none',
+        contained: bounds.left >= cardBounds.left - 1 && bounds.right <= cardBounds.right + 1 && bounds.left >= -1 && bounds.right <= innerWidth + 1,
+      };
+    }))`);
+    assert.equal(portraits.length, 3, 'Each career field should have its own portrait');
+    assert.equal(new Set(portraits.map(portrait => portrait.loaded)).size, 3, 'Career fields share the same portrait instead of their respective professional');
+    const descriptions = { it: /\bIT\b|technology/i, creative: /creative|design/i, business: /business/i };
+    for (const portrait of portraits) {
+      assert.match(portrait.webp || '', new RegExp(`(?:^|/)assets/field-${portrait.field}\\.webp(?:$|\\s)`), `${portrait.field} has a mismatched WebP source`);
+      assert.match(portrait.fallback || '', new RegExp(`(?:^|/)assets/field-${portrait.field}\\.png$`), `${portrait.field} has a mismatched PNG fallback`);
+      assert.equal(new URL(portrait.loaded).pathname.endsWith(`/assets/field-${portrait.field}.webp`), true, `${portrait.field} did not load its WebP portrait`);
+      assert(portrait.width > 0 && portrait.height > 0, `${portrait.field} portrait did not decode`);
+      assert(portrait.alt.length > 15 && descriptions[portrait.field]?.test(portrait.alt), `${portrait.field} portrait needs meaningful field-specific alternative text`);
+      assert(portrait.displayed, `${portrait.field} portrait is not visibly displayed`);
+      if (mobile) assert(portrait.contained, `${portrait.field} portrait overflows its mobile field card`);
+    }
+  }
   async function checkHorizontalScroll(selector = '.pathway-scroll') {
     await evaluate(`document.querySelector(${JSON.stringify(selector)}).scrollIntoView({ block: "center", behavior: "instant" }); document.querySelector(${JSON.stringify(selector)}).scrollLeft = 0`); await frames();
     const rect = await evaluate(`(() => { const element = document.querySelector(${JSON.stringify(selector)}); const rect = element.getBoundingClientRect(); return { x: rect.left + rect.width / 2, y: Math.min(innerHeight - 20, rect.top + rect.height / 2), overflow: element.scrollWidth - element.clientWidth }; })()`);
@@ -125,6 +157,8 @@ try {
   await evaluate('document.querySelector("[data-flow-action=start]").focus()'); await key('Enter');
   await waitFlow('fields', true);
   assert.equal(await evaluate('document.querySelectorAll("#flow-content [data-flow-field]").length'), 3, 'Students should be offered IT, Creative and Business');
+  await checkFieldPortraits();
+  await screenshot('desktop-fields.png', true);
   assert(await evaluate('document.querySelector("#flow-progress [data-flow-screen=journey]").disabled'), 'Future progress steps must not bypass career confirmation');
   await evaluate('document.querySelector("[data-flow-field=it]").focus()'); await key('Enter');
   await waitFlow('careers', true);
@@ -293,7 +327,15 @@ try {
   await screenshot('mobile-welcome.png', true);
   await click('[data-flow-action=start]'); await waitFlow('fields', true);
   assert(await evaluate('[...document.querySelectorAll("#flow-content [data-flow-field]")].every(element => { const r = element.getBoundingClientRect(); return r.width > 0 && r.left >= 0 && r.right <= innerWidth; })'), 'Mobile field-selection buttons are clipped');
+  await checkFieldPortraits(true);
+  assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Mobile field portraits cause horizontal overflow');
   await screenshot('mobile-fields.png', true);
+  await call('Emulation.setDeviceMetricsOverride', { width: 320, height: 844, deviceScaleFactor: 1, mobile: true });
+  await frames();
+  await checkFieldPortraits(true);
+  assert(await evaluate('document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll("#flow-content [data-flow-field]")].every(card => { const bounds = card.getBoundingClientRect(); return bounds.left >= 0 && bounds.right <= innerWidth; })'), 'Career field cards or portraits overflow a narrow 320px screen');
+  await call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: true });
+  await frames();
   await click('[data-flow-field=it]'); await waitFlow('careers', true);
   assert(await evaluate('document.documentElement.scrollWidth <= innerWidth'), 'Mobile career list has horizontal overflow');
   await click('[data-flow-career=ciso]'); await waitFlow('profile', true);
@@ -310,7 +352,7 @@ try {
   assert(await evaluate('(() => { const dialog = document.querySelector("#detail-dialog"); const r = dialog.getBoundingClientRect(); return dialog.open && r.left >= 0 && r.right <= innerWidth && r.height <= innerHeight; })()'), 'Mobile role details do not fit');
   await screenshot('mobile-detail.png'); await escape();
   assert.deepEqual(errors, [], 'Uncaught browser errors');
-  console.log('PASS: five-step career selection, keyboard entry/focus, browser Back/Forward, truthful field lists, illustrated profiles, confirmation/change-career, guarded/deep links, six-stage evolution, readiness, saved careers, details, courses, sharing, motion-safe mobile selection and pathway layouts.');
-  console.log('Screenshots saved in artifacts/desktop-welcome.png, artifacts/desktop-careers.png, artifacts/desktop-profile.png, artifacts/mobile-welcome.png, artifacts/mobile-fields.png, artifacts/mobile-profile.png, artifacts/desktop.png, artifacts/mobile.png and artifacts/mobile-detail.png.');
+  console.log('PASS: five-step career selection, three correctly matched and decoded career-field portraits with PNG fallbacks, keyboard entry/focus, browser Back/Forward, truthful field lists, illustrated profiles, confirmation/change-career, guarded/deep links, six-stage evolution, readiness, saved careers, details, courses, sharing, motion-safe mobile selection and pathway layouts.');
+  console.log('Screenshots saved in artifacts/desktop-welcome.png, artifacts/desktop-fields.png, artifacts/desktop-careers.png, artifacts/desktop-profile.png, artifacts/mobile-welcome.png, artifacts/mobile-fields.png, artifacts/mobile-profile.png, artifacts/desktop.png, artifacts/mobile.png and artifacts/mobile-detail.png.');
   await call('Browser.close');
 } finally { if (ws?.readyState === WebSocket.OPEN) ws.close(); chrome.kill(); }

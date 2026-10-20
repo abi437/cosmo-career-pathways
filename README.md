@@ -18,6 +18,10 @@ Back controls and browser Back/Forward preserve the selection flow. **Change car
 
 IT groups the source's software, cyber security, network, data/AI and IT services sectors. Creative maps to Digital Media. The supplied snapshot contains six IT role records, no Creative role records and no Business sector records, so those fields show clear empty states rather than fabricated careers. New career data can be added through the existing validated refresh workflow.
 
+Each field card now has a career portrait based on the supplied reference photo: IT with a laptop, Creative with a drawing tablet and stylus, and Business in a suit with a portfolio. The matching Creative and Business portraits also appear beside their availability notices. These are illustrative career outfits; the original role data and journey requirements are unchanged.
+
+Original transparent portraits and their individual generation prompts are saved as `assets/field-{it,creative,business}.png` and `assets/field-{it,creative,business}-prompt.md`. They were made with the built-in image generator. Lightweight 720-pixel-wide WebP copies are served through `<picture>`, with PNG fallbacks.
+
 ## Run
 
 Open `http://localhost/career%20pathway/` through WAMP, or run:
